@@ -53,7 +53,7 @@ erDiagram
     varchar nome_armazenado UK
     varchar tipo_mime
     bigint tamanho_bytes
-    char sha256
+    varchar sha256
     timestamptz criado_em
   }
 ```
