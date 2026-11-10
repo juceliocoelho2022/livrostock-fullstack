@@ -74,7 +74,7 @@ A variável deve ser definida **antes** de iniciar o Spring Boot. O diretório p
 ### Status e restrições
 
 - Upload, listagem e leitura/download **codificados no backend**, aguardando compilação e teste de integração.
-- Não há leitor PDF.js integrado ao React; navegadores modernos podem exibir diretamente o PDF retornado.
+- O React possui a tela Biblioteca Digital, com visualização em iframe que depende do leitor de PDF nativo do navegador. PDF.js dedicado ainda não foi incorporado.
 - Não existe login, proteção dos downloads, antivírus, controle de licença nem auditoria.
 - A validação de cabeçalho não garante que o documento seja seguro.
 - A consistência entre storage e banco, incluindo limpeza de arquivos órfãos em falhas transacionais, ainda precisa de robustecimento.
