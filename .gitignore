@@ -19,3 +19,9 @@ Thumbs.db
 *.log
 # Misc
 coverage/
+# PDFs enviados durante desenvolvimento (nunca versionar acervo/arquivos privados)
+**/data/pdfs/
+**/pdfs/*.pdf
+
+# Cache incremental do TypeScript
+*.tsbuildinfo

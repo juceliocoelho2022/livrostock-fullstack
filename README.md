@@ -212,6 +212,27 @@ Acesse a documentação: **http://localhost:8081/swagger-ui.html**.
 
 **Resultado esperado:** após a entrada e a saída acima, um livro inicialmente sem estoque terá saldo final de **17 unidades**.
 
+## 📖 Biblioteca digital — v0.2 (backend inicial, testes pendentes)
+
+Um livro pode ter um ou mais **exemplares em PDF** associados ao seu cadastro, sem alterar a quantidade de exemplares físicos. A API recebe os documentos, mantém os metadados no PostgreSQL e grava o conteúdo em um diretório persistente, configurado por `PDF_STORAGE_DIR`.
+
+**Endpoints adicionados à branch de desenvolvimento:**
+
+| Método | Rota | Objetivo |
+| --- | --- | --- |
+| `POST` | `/api/v1/livros/{id}/exemplares-digitais` | Upload `multipart/form-data` com campo `arquivo` |
+| `GET` | `/api/v1/livros/{id}/exemplares-digitais` | Listar PDFs relacionados ao livro |
+| `GET` | `/api/v1/livros/{id}/exemplares-digitais/{exemplarId}/arquivo` | Abrir PDF no navegador |
+| `GET` | `/api/v1/livros/{id}/exemplares-digitais/{exemplarId}/arquivo?download=true` | Solicitar download |
+
+Validações iniciais: extensão `.pdf`, assinatura `%PDF-`, arquivo não vazio, limite de **20 MiB**, nome físico aleatório (UUID) e checksum SHA-256. O conteúdo **não** é salvo no banco.
+
+> **Segurança:** os endpoints ainda não têm autenticação nem permissão por usuário. O cabeçalho PDF não substitui verificação antimalware; não exponha esse módulo publicamente. Somente envie exemplares de domínio público, com licença ou com autorização de uso/distribuição. A tela **Biblioteca Digital** no React já permite upload, consulta e visualização em um `iframe` que utiliza o leitor PDF nativo do navegador; PDF.js dedicado permanece planejado.
+
+**Executar em desenvolvimento:** depois de atualizar sua branch, definir as variáveis de banco e `PDF_STORAGE_DIR` e aplicar as migrations, inicie o backend e acesse o Swagger. Veja um exemplo de envio em [docs/API.md](docs/API.md).
+
+**Estado real:** migration, entidade, repositório, service e controller foram adicionados à branch da v0.2. **Compilação do backend e upload real de PDF foram validados localmente. A integração React foi codificada; teste manual da interface e hardening ainda pendentes.**
+
 ## 📏 Regras de negócio
 
 1. O cadastro de um livro começa com saldo de estoque igual a zero.
@@ -220,6 +241,62 @@ Acesse a documentação: **http://localhost:8081/swagger-ui.html**.
 4. Cada movimentação preserva o tipo, a quantidade, o saldo após a operação e a data.
 5. A desativação de livros é lógica, preservando o histórico.
 6. Livros com saldo abaixo do mínimo configurado podem aparecer no alerta de reposição.
+
+O inventário completo das regras e seus critérios de aceite está em **[docs/REGRAS_DE_NEGOCIO.md](docs/REGRAS_DE_NEGOCIO.md)**, com identificadores RN-001 a RN-007 e distinção entre **implementado** e **planejado**.
+
+## 🗃️ DER — Diagrama Entidade-Relacionamento
+
+O modelo físico atual mantém o estoque separado dos documentos digitais:
+
+```mermaid
+erDiagram
+    LIVROS ||--o{ MOVIMENTACOES : registra
+    LIVROS ||--o{ EXEMPLARES_DIGITAIS : disponibiliza
+    LIVROS {
+        bigint id PK
+        varchar isbn UK
+        varchar titulo
+        varchar categoria
+        numeric preco
+        int quantidade
+        int estoque_minimo
+    }
+    MOVIMENTACOES {
+        bigint id PK
+        bigint livro_id FK
+        varchar tipo
+        int quantidade
+        int saldo_apos
+    }
+    EXEMPLARES_DIGITAIS {
+        bigint id PK
+        bigint livro_id FK
+        varchar nome_armazenado UK
+        bigint tamanho_bytes
+        varchar sha256
+    }
+```
+
+O **[DER completo, os atributos, os relacionamentos futuros e as decisões de arquitetura](docs/ARQUITETURA.md)** estão documentados separadamente.
+
+## 🏢 Funcionalidades de um sistema profissional
+
+| Funcionalidade | Prioridade | Situação |
+| --- | --- | --- |
+| Catálogo, ISBN, busca, movimentações e alertas | Alta | v0.1 funcional |
+| Upload, metadados e leitura básica de PDF | Alta | Backend inicial v0.2, testes pendentes |
+| Categorias, editoras e fornecedores normalizados | Alta | Planejado v0.2 |
+| Leitor integrado via iframe/PDF nativo | Alta | Implementado no React, teste manual pendente |
+| Leitor PDF.js dedicado | Média | Planejado |
+| Gestão de licenças e direitos de acesso ao acervo digital | Crítica | Planejado |
+| Login JWT, RBAC e auditoria de operações | Crítica | Planejado v0.3 |
+| Testcontainers e testes ponta a ponta | Alta | Planejado |
+| Movimentações com controle de concorrência | Alta | Planejado |
+| Relatórios e exportação CSV/Excel | Média | Planejado |
+| Backup de PostgreSQL + PDFs e restauração | Crítica | Planejado |
+| S3/MinIO, checksum na leitura e antivírus de upload | Alta | Planejado |
+| Observabilidade, tracing, métricas e alertas | Média | Planejado |
+| CI/CD, HTTPS, deploy e documentação operacional | Alta | Planejado v1.0 |
 
 ## 🧪 Testes e qualidade
 
@@ -234,7 +311,7 @@ npm ci
 npm run build
 ```
 
-Há um workflow de CI em `.github/workflows/ci.yml`, com jobs separados para Java e frontend. A existência do workflow **não equivale à confirmação de que a última execução passou**; verifique a aba **Actions** no GitHub.
+Há um workflow de CI em `.github/workflows/ci.yml`, com jobs separados para Java e frontend. **Na execução da PR de 10/11/2026**, o pipeline compilou o React e executou **14 testes Java (11 de biblioteca digital e 3 do domínio Livro), sem falhas**. Consulte o resultado atualizado na aba **Actions**, pois versões posteriores podem mudar esse status.
 
 Os testes locais de integração realizados na v0.1 confirmaram acesso ao endpoint de saúde, leitura do catálogo e operações de estoque na interface. Testes automatizados com banco real e Testcontainers são parte do roadmap.
 
@@ -250,11 +327,11 @@ Os testes locais de integração realizados na v0.1 confirmaram acesso ao endpoi
 | Versão | Foco | Situação |
 | --- | --- | --- |
 | **v0.1** | Livros, movimentações, dashboard, Flyway e Swagger | Funcional localmente |
-| **v0.2** | Entidades de categorias, editoras e fornecedores; testes de integração | Próxima fase |
+| **v0.2** | Exemplares PDF, categorias, editoras e fornecedores; testes de integração | Em desenvolvimento |
 | **v0.3** | Spring Security, JWT, perfis de acesso, auditoria e observabilidade | Planejada |
 | **v1.0** | Hardening, CI validado, deploy e documentação operacional | Planejada |
 
-Acompanhe as entregas em [docs/ROADMAP.md](docs/ROADMAP.md), a [arquitetura](docs/ARQUITETURA.md) e o [contrato de API](docs/API.md).
+Consulte [roadmap](docs/ROADMAP.md), [regras de negócio](docs/REGRAS_DE_NEGOCIO.md), [arquitetura e DER](docs/ARQUITETURA.md) e [API REST](docs/API.md).
 
 ## 📄 Licença
 

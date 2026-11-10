@@ -16,7 +16,23 @@
 - [ ] Verificar execução verde do pipeline CI no GitHub
 - [ ] Adicionar capturas do sistema em `docs/images/`
 
-## 🚧 v0.2 — Expansão do domínio (próxima fase)
+## 🚧 v0.2 — Acervo digital e expansão do domínio
+
+### Sprint 0 — Exemplares PDF (backend inicial na branch)
+
+- [x] Adicionar migration, entidade e repositório de exemplares digitais
+- [x] Criar API inicial de upload, listagem e leitura/download
+- [x] Registrar regras de negócio e DER do módulo
+- [x] Compilar backend com Maven e executar migração V2 em banco local existente
+- [x] Validar upload e listagem de PDF de teste pela API
+- [x] Integrar tela React de upload, listagem e leitor usando PDF nativo do navegador
+- [ ] Validar manualmente a integração React com a API no ambiente local
+- [ ] Testar upload, validações, leitura, erros e armazenamento persistente
+- [ ] Implementar autenticação e autorização antes de publicar acesso a documentos
+- [ ] Reforçar análise de PDF, gestão de licenças e limpeza de arquivos órfãos
+
+**Critério de aceite:** upload autorizado de um PDF, recuperação do documento pelo navegador e teste de negativas; não publicar até ter autenticação, autorização e inspeção adequada de arquivos.
+
 
 ### Sprint 1 — Categorias
 
