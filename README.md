@@ -311,7 +311,7 @@ npm ci
 npm run build
 ```
 
-Há um workflow de CI em `.github/workflows/ci.yml`, com jobs separados para Java e frontend. A existência do workflow **não equivale à confirmação de que a última execução passou**; verifique a aba **Actions** no GitHub.
+Há um workflow de CI em `.github/workflows/ci.yml`, com jobs separados para Java e frontend. **Na execução da PR de 10/11/2026**, o pipeline compilou o React e executou **14 testes Java (11 de biblioteca digital e 3 do domínio Livro), sem falhas**. Consulte o resultado atualizado na aba **Actions**, pois versões posteriores podem mudar esse status.
 
 Os testes locais de integração realizados na v0.1 confirmaram acesso ao endpoint de saúde, leitura do catálogo e operações de estoque na interface. Testes automatizados com banco real e Testcontainers são parte do roadmap.
 
