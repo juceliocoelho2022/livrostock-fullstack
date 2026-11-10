@@ -5,6 +5,7 @@ export type ExemplarDigital = {id:number;livroId:number;nomeOriginal:string;tipo
 export type Page<T>={content:T[];totalElements:number;totalPages:number;number:number;size:number;first:boolean;last:boolean};
 const BASE=(import.meta.env.VITE_API_URL as string|undefined)?.replace(/\/$/,'')??'';
 let tokenPdf:string|null=null;
+let perfisPdf:string[]=[];
 const headersPdf=()=>tokenPdf?{'Authorization':`Bearer ${tokenPdf}`}:{};
 export type LoginPdf={usuario:string;senha:string};
 export type TokenPdf={accessToken:string;tokenType:'Bearer';expiresIn:number;roles:string[]};
@@ -49,10 +50,12 @@ export const api={
     return data.enabled===true;
   },
   pdfAutenticado:()=>tokenPdf!==null,
-  pdfSair:()=>{tokenPdf=null;},
+  pdfPerfis:()=>perfisPdf,
+  pdfSair:()=>{tokenPdf=null;perfisPdf=[];},
   pdfLogin:async(credenciais:LoginPdf):Promise<TokenPdf>=>{
     const resposta=await request<TokenPdf>('/api/v1/auth/login',{method:'POST',body:JSON.stringify(credenciais)});
     tokenPdf=resposta.accessToken;
+    perfisPdf=resposta.roles;
     return resposta;
   },
   pdfArquivo:async(livroId:number,exemplarId:number,download=false):Promise<Blob>=>{
