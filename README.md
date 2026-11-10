@@ -227,11 +227,11 @@ Um livro pode ter um ou mais **exemplares em PDF** associados ao seu cadastro, s
 
 Validações iniciais: extensão `.pdf`, assinatura `%PDF-`, arquivo não vazio, limite de **20 MiB**, nome físico aleatório (UUID) e checksum SHA-256. O conteúdo **não** é salvo no banco.
 
-> **Segurança:** os endpoints ainda não têm autenticação nem permissão por usuário. O cabeçalho PDF não substitui verificação antimalware; não exponha esse módulo publicamente. Somente envie exemplares de domínio público, com licença ou com autorização de uso/distribuição. O leitor integrado ao React ainda será implementado; a visualização `inline` usa a capacidade nativa do navegador.
+> **Segurança:** os endpoints ainda não têm autenticação nem permissão por usuário. O cabeçalho PDF não substitui verificação antimalware; não exponha esse módulo publicamente. Somente envie exemplares de domínio público, com licença ou com autorização de uso/distribuição. A tela **Biblioteca Digital** no React já permite upload, consulta e visualização em um `iframe` que utiliza o leitor PDF nativo do navegador; PDF.js dedicado permanece planejado.
 
 **Executar em desenvolvimento:** depois de atualizar sua branch, definir as variáveis de banco e `PDF_STORAGE_DIR` e aplicar as migrations, inicie o backend e acesse o Swagger. Veja um exemplo de envio em [docs/API.md](docs/API.md).
 
-**Estado real:** migration, entidade, repositório, service e controller foram adicionados à branch da v0.2. **Compilação, testes, integração com React e hardening ainda pendentes.**
+**Estado real:** migration, entidade, repositório, service e controller foram adicionados à branch da v0.2. **Compilação do backend e upload real de PDF foram validados localmente. A integração React foi codificada; teste manual da interface e hardening ainda pendentes.**
 
 ## 📏 Regras de negócio
 
@@ -286,7 +286,8 @@ O **[DER completo, os atributos, os relacionamentos futuros e as decisões de ar
 | Catálogo, ISBN, busca, movimentações e alertas | Alta | v0.1 funcional |
 | Upload, metadados e leitura básica de PDF | Alta | Backend inicial v0.2, testes pendentes |
 | Categorias, editoras e fornecedores normalizados | Alta | Planejado v0.2 |
-| Leitor PDF.js integrado ao React | Alta | Planejado v0.2 |
+| Leitor integrado via iframe/PDF nativo | Alta | Implementado no React, teste manual pendente |
+| Leitor PDF.js dedicado | Média | Planejado |
 | Gestão de licenças e direitos de acesso ao acervo digital | Crítica | Planejado |
 | Login JWT, RBAC e auditoria de operações | Crítica | Planejado v0.3 |
 | Testcontainers e testes ponta a ponta | Alta | Planejado |
