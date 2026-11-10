@@ -23,8 +23,10 @@
 - [x] Adicionar migration, entidade e repositório de exemplares digitais
 - [x] Criar API inicial de upload, listagem e leitura/download
 - [x] Registrar regras de negócio e DER do módulo
-- [ ] Compilar backend e validar migração Flyway com dados existentes
-- [ ] Integrar botão de upload e leitor de PDF no React
+- [x] Compilar backend com Maven e executar migração V2 em banco local existente
+- [x] Validar upload e listagem de PDF de teste pela API
+- [x] Integrar tela React de upload, listagem e leitor usando PDF nativo do navegador
+- [ ] Validar manualmente a integração React com a API no ambiente local
 - [ ] Testar upload, validações, leitura, erros e armazenamento persistente
 - [ ] Implementar autenticação e autorização antes de publicar acesso a documentos
 - [ ] Reforçar análise de PDF, gestão de licenças e limpeza de arquivos órfãos
