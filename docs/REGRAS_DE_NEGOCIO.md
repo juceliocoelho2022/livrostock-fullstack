@@ -69,3 +69,14 @@
 5. Enviar arquivo com outro formato, vazio ou acima do limite: falhar sem cadastro.
 6. Enviar para livro inexistente ou inativo: falhar sem cadastro.
 7. Com segurança futura: usuário sem permissão recebe `403` e nenhuma leitura de arquivo.
+
+## RN-008 — Autorização por perfil JWT (experimental em v0.3)
+
+- Sob o perfil Spring `secure`, upload de PDFs exige `ROLE_BIBLIOTECARIO`.
+- Lista, leitura e download exigem `ROLE_BIBLIOTECARIO` ou `ROLE_LEITOR`.
+- Token JWT expira após 30 minutos; credenciais não são incluídas em links.
+- Sem token: `401`; com perfil insuficiente: `403`.
+- Fora do perfil `secure`, permanece o modo v0.2 local sem autenticação; não deve ser exposto publicamente.
+- O controle de acesso para os demais endpoints continua pendente.
+
+Veja [SEGURANCA.md](SEGURANCA.md).
