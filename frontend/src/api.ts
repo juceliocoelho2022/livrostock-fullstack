@@ -6,13 +6,16 @@ export type Page<T>={content:T[];totalElements:number;totalPages:number;number:n
 const BASE=(import.meta.env.VITE_API_URL as string|undefined)?.replace(/\/$/,'')??'';
 let tokenPdf:string|null=null;
 let perfisPdf:string[]=[];
-const headersPdf=()=>tokenPdf?{'Authorization':`Bearer ${tokenPdf}`}:{};
+const headersPdf=():Record<string,string>=>tokenPdf?{'Authorization':`Bearer ${tokenPdf}`}:{};
 export type LoginPdf={usuario:string;senha:string};
 export type TokenPdf={accessToken:string;tokenType:'Bearer';expiresIn:number;roles:string[]};
 
 async function request<T>(path:string,opts:RequestInit={}):Promise<T>{
   let response:Response;
-  try {response=await fetch(BASE+path,{...opts,headers:{'Content-Type':'application/json',...headersPdf(),...opts.headers}});}catch {throw new Error('Não foi possível conectar à API. Verifique se o Spring Boot está ativo na porta configurada (padrão 8081).');}
+  const headers=new Headers(opts.headers);
+  if(!headers.has('Content-Type')) headers.set('Content-Type','application/json');
+  if(tokenPdf) headers.set('Authorization',`Bearer ${tokenPdf}`);
+  try {response=await fetch(BASE+path,{...opts,headers});}catch {throw new Error('Não foi possível conectar à API. Verifique se o Spring Boot está ativo na porta configurada (padrão 8081).');}
   if(!response.ok){let error:unknown;try{error=await response.json();}catch{};const message=error && typeof error==='object'&&'erro' in error?String(error.erro):`Erro HTTP ${response.status}`;throw new Error(message);}
   if(response.status===204)return undefined as T;
   return response.json() as Promise<T>;
