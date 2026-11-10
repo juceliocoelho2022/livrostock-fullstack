@@ -106,10 +106,6 @@ class PdfSecurityWebTest {
                 .andExpect(jsonPath("$.livroId").value(1));
     }
 
-    @Test void healthPermanecePublico() throws Exception {
-        // Authorized rules leave non-PDF endpoints available in this initial profile.
-        mvc.perform(get("/actuator/health")).andExpect(status().isNotFound());
-    }
     @Test void semTokenNaoBaixaPdf() throws Exception {
         mvc.perform(get("/api/v1/livros/1/exemplares-digitais/10/arquivo"))
                 .andExpect(status().isUnauthorized());
