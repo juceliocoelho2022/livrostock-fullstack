@@ -3,7 +3,7 @@ on:
   push:
     branches: [main, develop, feature/v0.2-categorias]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, 'feature/v0.3-pdf-security']
 permissions:
   contents: read
 jobs:
