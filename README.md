@@ -1,115 +1,181 @@
 # 📚 LivroStock — Gestão de Acervo e Estoque
 
-![Java 21](https://img.shields.io/badge/Java-21-orange) ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.6-green) ![React](https://img.shields.io/badge/React-18-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%2B-blue) ![License](https://img.shields.io/badge/license-MIT-lightgrey)
+<p align="center">
+  <img alt="Java 21" src="https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white">
+  <img alt="Spring Boot 3.5.6" src="https://img.shields.io/badge/Spring%20Boot-3.5.6-6DB33F?logo=springboot&logoColor=white">
+  <img alt="React 18" src="https://img.shields.io/badge/React-18-149ECA?logo=react&logoColor=white">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white">
+  <img alt="PostgreSQL 16" src="https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white">
+  <img alt="Docker" src="https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white">
+  <img alt="License MIT" src="https://img.shields.io/badge/License-MIT-blue">
+</p>
 
-**LivroStock** é uma aplicação full stack para cadastro de livros, controle de estoque por movimentações e consulta de indicadores de acervo. Projeto de portfólio construído com **Java 21 / Spring Boot**, **React / TypeScript**, **PostgreSQL**, **Flyway** e **Swagger**.
+**LivroStock** é um sistema full stack de controle de acervo e estoque de livros, desenvolvido como projeto de portfólio. Integra uma **API REST em Java 21 e Spring Boot**, uma **SPA em React e TypeScript** e um banco **PostgreSQL**, com persistência via JPA/Hibernate e migrações versionadas com Flyway.
 
-> Status: versão inicial funcional em desenvolvimento local. Não há autenticação implementada neste código. Antes de expor em produção, adicionar controle de acesso, gestão de segredos e hardening.
+> **Estado do projeto:** v0.1 validada em ambiente local, incluindo resposta da API, interface conectada e movimentação de estoque. Não é um sistema pronto para produção: autenticação, autorização, auditoria e gestão de segredos ainda precisam ser implementadas.
 
-## Funcionalidades
+## ✨ Funcionalidades da v0.1
 
-- CRUD de livros com título, autor, ISBN, categoria, preço e estoque mínimo
-- Entrada e saída de unidades com histórico de movimentações
-- Bloqueio de saída maior que o saldo disponível
-- Consulta de livros com paginação, busca e alerta de estoque baixo
-- Painel React para cadastro, consulta e movimentações
-- Documentação interativa via Swagger/OpenAPI
-- Migrations Flyway e testes unitários de domínio
+- Cadastro, consulta, edição e desativação lógica de livros
+- ISBN, autor, categoria, preço e estoque mínimo
+- Busca, paginação e visualização do catálogo
+- Entrada e saída de estoque com histórico
+- Validação de quantidade e impedimento de saldo negativo
+- Indicadores de títulos, unidades, valor do acervo e estoque baixo
+- Dashboard responsivo em React
+- Documentação interativa Swagger / OpenAPI
+- Versionamento do schema via Flyway
+- Testes Java com JUnit e build do frontend em TypeScript
 
-## Estrutura
+### Interface
+
+O painel reúne **Visão geral**, **Catálogo de livros**, **Movimentações** e **Estoque baixo**. O status de conexão da API aparece no cabeçalho. Capturas de tela poderão ser incluídas em `docs/images/` após serem adicionadas ao repositório.
+
+## 🧱 Arquitetura
+
+```mermaid
+flowchart LR
+    U[Usuário / navegador] --> R[React + TypeScript + Vite :5173]
+    R -->|Proxy /api e /actuator| A[Spring Boot REST :8081]
+    A --> J[JPA / Hibernate]
+    A --> F[Flyway]
+    J --> P[(PostgreSQL 16)]
+    F --> P
+```
+
+| Camada | Tecnologias | Responsabilidade |
+| --- | --- | --- |
+| Frontend | React 18, TypeScript 5, Vite 6, Lucide | Interface, formulários, consumo da API |
+| Backend | Java 21, Spring Boot 3.5.6, Spring Web, Bean Validation | Regras de negócio, endpoints REST |
+| Persistência | Spring Data JPA, Hibernate, PostgreSQL 16 | Entidades, consultas e transações |
+| Migrações | Flyway | Evolução controlada do banco |
+| Documentação | springdoc / Swagger UI | Contrato e exploração da API |
+| Qualidade | Maven, JUnit 5, GitHub Actions | Compilação, testes e integração contínua |
+
+### Estrutura do repositório
 
 ```text
-livrostock/
-├── backend/              # API Spring Boot + JPA + Flyway + testes
-│   ├── src/main/java/
-│   ├── src/main/resources/db/migration/
-│   ├── src/test/
+livrostock-fullstack/
+├── backend/
+│   ├── src/main/java/             # API e domínio
+│   ├── src/main/resources/        # application.yml e Flyway
+│   ├── src/test/                  # testes Java
+│   ├── docker-compose.yml         # Compose de exemplo
 │   └── pom.xml
-├── frontend/             # React + TypeScript + Vite
-│   ├── src/
-│   ├── package.json
-│   └── vite.config.ts
-├── docs/                 # arquitetura, contratos e roteiro
-├── .github/workflows/    # CI Java e frontend
-├── .gitignore
+├── frontend/
+│   ├── src/                       # componentes, estilos e integração
+│   ├── .env.example
+│   ├── vite.config.ts
+│   └── package.json
+├── docs/
+│   ├── API.md
+│   ├── ARQUITETURA.md
+│   └── ROADMAP.md
+├── .github/workflows/ci.yml
 └── README.md
 ```
 
-## Pré-requisitos
+## 🚀 Executando no Windows (PowerShell)
 
-- JDK 21 e Maven 3.9+
-- Node.js 20+ e npm
-- PostgreSQL 16+ (local ou Docker)
-- Git; Docker Desktop **opcional**
+### Pré-requisitos
 
-## Início rápido (Windows PowerShell)
+- JDK **21**
+- Maven **3.9+**
+- Node.js **20+** e npm
+- PostgreSQL **16+**, local ou em Docker
+- Docker Desktop, caso utilize PostgreSQL em contêiner
 
-### 1. Banco de dados
-
-Se já existir o banco **livrostock** acessível em `localhost:5432`, **não inicie outro PostgreSQL**. Caso contrário:
+### 1. Clonar o projeto
 
 ```powershell
-cd backend
-docker compose up -d
+git clone https://github.com/juceliocoelho2022/livrostock-fullstack.git
+cd livrostock-fullstack
 ```
 
-A configuração de desenvolvimento usa `livrostock` como nome do banco, usuário e senha. **Altere as credenciais antes de publicar**. Para uma instância externa, configure `DB_URL`, `DB_USER` e `DB_PASSWORD`.
+### 2. Preparar o banco
 
-### 2. Backend
+A aplicação utiliza um banco chamado `livrostock`, normalmente com usuário `livrostock`. **Não use senhas reais no Git.** Configure o usuário e a senha no PostgreSQL antes de executar o backend.
+
+**Atenção aos ambientes com múltiplos projetos Docker:** pode existir outro PostgreSQL instalado no Windows ou outro contêiner usando a porta `5432`. Na configuração local validada durante o desenvolvimento, o PostgreSQL Docker foi publicado em **`127.0.0.1:5434`**, mantendo a porta `5432` dentro do contêiner.
+
+Para uma **nova instalação** com o Compose do próprio repositório, revise antes `backend/docker-compose.yml`: ele atualmente publica `5432:5432` e contém credenciais de exemplo. Ajuste as credenciais e a porta de publicação conforme seu ambiente, sem sobrescrever volumes de uma instalação existente.
+
+Exemplo de publicação local alternativa no Compose:
+
+```yaml
+ports:
+  - "127.0.0.1:5434:5432"
+```
+
+> Se já existe um banco funcional, **reutilize-o**. Não recrie contêineres/volumes desnecessariamente e nunca execute `docker compose down -v` sobre dados que deseja conservar.
+
+### 3. Iniciar o backend
+
+Abra um PowerShell na pasta do repositório:
 
 ```powershell
 cd backend
+
+$env:DB_URL = "jdbc:postgresql://127.0.0.1:5434/livrostock"
+$env:DB_USER = "livrostock"
+$senha = Read-Host "Senha do PostgreSQL" -AsSecureString
+$env:DB_PASSWORD = [System.Net.NetworkCredential]::new("", $senha).Password
+
 mvn clean test
 mvn spring-boot:run
 ```
 
-API por padrão: `http://localhost:8081` (8080 já estava ocupada por outro serviço Docker no ambiente de desenvolvimento). Override: variável de ambiente `PORT`.
+Se seu PostgreSQL estiver publicado em outra porta, altere apenas `DB_URL` (por exemplo, para `localhost:5432`).
 
-- Swagger: http://localhost:8081/swagger-ui.html
-- Health: http://localhost:8081/actuator/health
-- Livros: http://localhost:8081/api/v1/livros
+A API é iniciada em **http://localhost:8081** por padrão; a porta pode ser alterada pela variável `PORT`.
 
-**Verifique sempre a rota de livros**: `health` com HTTP 200 não garante que o serviço respondendo seja o LivroStock. Se `GET /api/v1/livros` retornar 401, confira o processo/container responsável pela porta. O backend deste pacote não inclui Spring Security.
+### 4. Iniciar o frontend
 
-### 3. Frontend
-
-Em outro terminal:
+Mantenha o backend em execução. Abra **outro terminal** na raiz do projeto:
 
 ```powershell
 cd frontend
-npm install
+npm ci
 Copy-Item .env.example .env
 npm run dev
 ```
 
-UI: http://localhost:5173. No desenvolvimento, `/api` e `/actuator` são encaminhados pelo Vite para `http://localhost:8081`. `VITE_API_URL` vazia = usa o proxy. Ajuste `API_PROXY_TARGET` em `frontend/.env` se necessário e reinicie o Vite.
+Acesse **http://localhost:5173**.
 
-### 4. Build
+O Vite encaminha requisições iniciadas em `/api` e `/actuator` para `http://localhost:8081`. Para usar outro backend, ajuste `API_PROXY_TARGET` em `frontend/.env` e reinicie o Vite.
+
+> `npm ci` requer o arquivo `package-lock.json` no repositório. Caso ele esteja ausente na sua cópia, utilize `npm install` e versione o lockfile.
+
+### 5. Verificar a integração
+
+No PowerShell:
 
 ```powershell
-cd backend
-mvn clean test package
-cd ../frontend
-npm install  # gerar e versionar package-lock.json em seguida para builds reproduzíveis
-npm run build
+Invoke-RestMethod http://localhost:8081/actuator/health
+Invoke-RestMethod http://localhost:8081/api/v1/livros
 ```
 
-> Este pacote foi preparado a partir das versões iniciais do backend/frontend. O build do frontend foi validado pelo usuário na versão anterior; **esta versão integrada ainda precisa ser compilada/testada no seu computador ou no CI**.
+O primeiro endpoint deve retornar `status: UP`; o segundo deve retornar uma resposta paginada com `content`, `totalElements` e outros metadados.
 
-## API REST
+Acesse a documentação: **http://localhost:8081/swagger-ui.html**.
 
-| Método | Endpoint | Descrição |
-|---|---|---|
+## 🔌 Principais endpoints
+
+| Método | Rota | Operação |
+| --- | --- | --- |
 | `POST` | `/api/v1/livros` | Cadastrar livro |
-| `GET` | `/api/v1/livros` | Listar/buscar com paginação |
-| `GET` | `/api/v1/livros/{id}` | Buscar por ID |
+| `GET` | `/api/v1/livros` | Listar e pesquisar livros |
+| `GET` | `/api/v1/livros/{id}` | Consultar livro por ID |
 | `PUT` | `/api/v1/livros/{id}` | Atualizar dados |
 | `DELETE` | `/api/v1/livros/{id}` | Desativar livro |
-| `POST` | `/api/v1/livros/{id}/movimentacoes` | Entrada/saída |
-| `GET` | `/api/v1/livros/{id}/movimentacoes` | Histórico |
-| `GET` | `/api/v1/livros/estoque-baixo` | Alerta de reposição |
+| `POST` | `/api/v1/livros/{id}/movimentacoes` | Registrar entrada ou saída |
+| `GET` | `/api/v1/livros/{id}/movimentacoes` | Consultar histórico |
+| `GET` | `/api/v1/livros/estoque-baixo` | Identificar necessidade de reposição |
+| `GET` | `/actuator/health` | Verificar disponibilidade |
 
-### Exemplo de cadastro
+### Criar um livro
+
+`POST /api/v1/livros`
 
 ```json
 {
@@ -122,30 +188,74 @@ npm run build
 }
 ```
 
-### Exemplo de entrada
+### Registrar entrada de 20 unidades
 
-`POST /api/v1/livros/1/movimentacoes`
+`POST /api/v1/livros/{id}/movimentacoes`
 
 ```json
-{"tipo":"ENTRADA", "quantidade":20, "observacao":"Compra de livros"}
+{
+  "tipo": "ENTRADA",
+  "quantidade": 20,
+  "observacao": "Reposição inicial do estoque"
+}
 ```
 
-### Regras essenciais
+### Registrar saída de 3 unidades
 
-1. Livro é cadastrado inicialmente com saldo zero.
-2. Movimentações registram tipo, quantidade, saldo após e data.
-3. Não é permitido saldo negativo.
-4. Exclusão lógica preserva o histórico.
+```json
+{
+  "tipo": "SAIDA",
+  "quantidade": 3,
+  "observacao": "Venda de exemplares"
+}
+```
 
-## Qualidade, segurança e roadmap
+**Resultado esperado:** após a entrada e a saída acima, um livro inicialmente sem estoque terá saldo final de **17 unidades**.
 
-- **CI**: workflows para testes Java 21 e build React/TypeScript.
-- **Testes**: JUnit 5 no domínio; expandir com integração PostgreSQL/Testcontainers.
-- **Limitações atuais**: sem login/JWT, sem gestão de usuários, sem deploy e sem cadastro separado de fornecedores/editoras.
-- **Próximas versões**: autenticação/autorização, relatórios, fornecedores, editoras, categorias, testes de integração e pipeline de deploy.
+## 📏 Regras de negócio
 
-Consulte [docs/ARQUITETURA.md](docs/ARQUITETURA.md), [docs/API.md](docs/API.md) e [docs/ROADMAP.md](docs/ROADMAP.md).
+1. O cadastro de um livro começa com saldo de estoque igual a zero.
+2. Entradas aumentam e saídas reduzem a quantidade disponível.
+3. A API impede saídas superiores ao saldo existente.
+4. Cada movimentação preserva o tipo, a quantidade, o saldo após a operação e a data.
+5. A desativação de livros é lógica, preservando o histórico.
+6. Livros com saldo abaixo do mínimo configurado podem aparecer no alerta de reposição.
 
-## Licença
+## 🧪 Testes e qualidade
 
-MIT — veja [LICENSE](LICENSE).
+```powershell
+# API: testes e empacotamento
+cd backend
+mvn clean verify
+
+# SPA: verificação TypeScript e build de produção
+cd ../frontend
+npm ci
+npm run build
+```
+
+Há um workflow de CI em `.github/workflows/ci.yml`, com jobs separados para Java e frontend. A existência do workflow **não equivale à confirmação de que a última execução passou**; verifique a aba **Actions** no GitHub.
+
+Os testes locais de integração realizados na v0.1 confirmaram acesso ao endpoint de saúde, leitura do catálogo e operações de estoque na interface. Testes automatizados com banco real e Testcontainers são parte do roadmap.
+
+## 🔒 Segurança e limitações
+
+- A v0.1 **não possui login nem controle de acesso**. Não exponha esta API publicamente.
+- As credenciais no Compose versionado são **exemplos de desenvolvimento** e deverão ser removidas antes de qualquer publicação.
+- Mantenha segredos em variáveis de ambiente; não versione `.env` nem senhas reais.
+- Para produção: implementar autenticação/autorização, gestão segura de credenciais, HTTPS, auditoria, observabilidade e políticas de backup.
+
+## 🗺️ Roadmap
+
+| Versão | Foco | Situação |
+| --- | --- | --- |
+| **v0.1** | Livros, movimentações, dashboard, Flyway e Swagger | Funcional localmente |
+| **v0.2** | Entidades de categorias, editoras e fornecedores; testes de integração | Próxima fase |
+| **v0.3** | Spring Security, JWT, perfis de acesso, auditoria e observabilidade | Planejada |
+| **v1.0** | Hardening, CI validado, deploy e documentação operacional | Planejada |
+
+Acompanhe as entregas em [docs/ROADMAP.md](docs/ROADMAP.md), a [arquitetura](docs/ARQUITETURA.md) e o [contrato de API](docs/API.md).
+
+## 📄 Licença
+
+Distribuído sob a licença **MIT**. Consulte [LICENSE](LICENSE).
