@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: livrostock-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/livrostock}
+    username: ${DB_USER:livrostock}
+    password: ${DB_PASSWORD:livrostock}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+server:
+  port: ${PORT:8081}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
