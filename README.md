@@ -333,6 +333,14 @@ Os testes locais de integração realizados na v0.1 confirmaram acesso ao endpoi
 
 Consulte [roadmap](docs/ROADMAP.md), [regras de negócio](docs/REGRAS_DE_NEGOCIO.md), [arquitetura e DER](docs/ARQUITETURA.md) e [API REST](docs/API.md).
 
+## 🔐 Segurança opcional da Biblioteca Digital (branch v0.3)
+
+Um **perfil Spring `secure`** foi adicionado na branch `feature/v0.3-pdf-security`: login JWT válido por 30 minutos, perfis **BIBLIOTECARIO** (upload e leitura) e **LEITOR** (somente leitura/download). O React reconhece esse modo e usa tokens Bearer sem colocá-los na URL.
+
+**O ambiente v0.2 local permanece inalterado quando o perfil seguro não está ativo.** A segurança ainda não está homologada para produção: outros endpoints permanecem públicos e faltam auditoria, rate limiting, inspeção antimalware e gestão de usuários.
+
+Consulte o [manual de segurança e ativação no Windows](docs/SEGURANCA.md).
+
 ## 📄 Licença
 
 Distribuído sob a licença **MIT**. Consulte [LICENSE](LICENSE).
