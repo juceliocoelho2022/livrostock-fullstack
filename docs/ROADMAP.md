@@ -1,21 +1,83 @@
-# Roadmap
+# Roadmap — LivroStock
 
-## v0.1 — MVP
-- [x] CRUD de livros
-- [x] Histórico de entradas e saídas
+> Entregas baseadas no código versionado e em verificações realizadas no ambiente local. Marcação de implementação não implica deploy em produção.
+
+## ✅ v0.1 — MVP de gestão de livros
+
+- [x] CRUD de livros (incluindo desativação lógica)
+- [x] Registro de entradas e saídas
 - [x] Bloqueio de saldo negativo
-- [x] Dashboard React
-- [x] Swagger e Flyway
-- [ ] Validar CI do monorepo após publicação
+- [x] Histórico de movimentações
+- [x] Alerta de estoque baixo
+- [x] Dashboard React/TypeScript
+- [x] Swagger/OpenAPI e Flyway
+- [x] Integração local entre frontend, API e PostgreSQL
+- [x] README de apresentação e execução local
+- [ ] Verificar execução verde do pipeline CI no GitHub
+- [ ] Adicionar capturas do sistema em `docs/images/`
 
-## v0.2 — Domínio
-- [ ] Editoras e fornecedores
-- [ ] Categorias como entidades
-- [ ] Regras de preço de compra e custo
-- [ ] Testes de integração com Testcontainers
+## 🚧 v0.2 — Expansão do domínio (próxima fase)
 
-## v0.3 — Segurança e operação
-- [ ] Autenticação e autorização (JWT/roles)
-- [ ] Auditoria de usuários
-- [ ] Observabilidade e logs estruturados
-- [ ] Deploy em ambiente controlado
+### Sprint 1 — Categorias
+
+- [ ] Modelar `Categoria` com identificador, nome único e status ativo
+- [ ] Criar migration Flyway e repositório JPA
+- [ ] Implementar API de categorias com validação e tratamento de erros
+- [ ] Associar livros à entidade Categoria sem perder dados existentes
+- [ ] Adicionar seleção de categoria no formulário React
+- [ ] Testar CRUD, unicidade, associação e compatibilidade da migração
+
+**Critério de aceite:** criar uma categoria, associá-la a um livro, consultar os dados no catálogo e impedir nomes duplicados.
+
+### Sprint 2 — Editoras
+
+- [ ] Modelar `Editora` (nome, contato opcional, status)
+- [ ] Criar migrations e endpoints REST
+- [ ] Associar editora ao livro
+- [ ] Criar manutenção no frontend
+- [ ] Testar fluxos positivos, validações e referências
+
+**Critério de aceite:** cadastrar e selecionar uma editora no livro sem quebrar o CRUD existente.
+
+### Sprint 3 — Fornecedores
+
+- [ ] Modelar `Fornecedor` com nome, documento opcional, contato e status
+- [ ] Criar migrations, serviços, repositórios e endpoints
+- [ ] Preparar vínculo entre fornecedor e entradas de estoque
+- [ ] Criar tela de consulta/cadastro no frontend
+- [ ] Testar regras de desativação e associação
+
+**Critério de aceite:** registrar um fornecedor e identificá-lo numa entrada de estoque, preservando histórico.
+
+### Sprint 4 — Qualidade e documentação
+
+- [ ] Adicionar testes de integração PostgreSQL (Testcontainers)
+- [ ] Validar as migrações num banco novo e num banco já populado
+- [ ] Atualizar Swagger, API e DER
+- [ ] Confirmar build Java, build frontend e CI
+- [ ] Preparar release notes e tag `v0.2.0`
+
+**Definição de pronto v0.2:** fluxo de livro → categoria/editora → fornecedor → entrada de estoque documentado, testado e executável no ambiente local.
+
+## 🔒 v0.3 — Segurança e operação
+
+- [ ] Autenticação com Spring Security e JWT
+- [ ] Autorização por perfis (ex.: ADMIN, OPERADOR, CONSULTA)
+- [ ] Auditoria de mudanças e movimentações por usuário
+- [ ] Substituição de credenciais de exemplo por configurações seguras
+- [ ] Observabilidade, logs estruturados e métricas
+- [ ] Testes de segurança e autorização
+
+## 🚀 v1.0 — Publicação
+
+- [ ] Validar proteção de segredos e configurações por ambiente
+- [ ] Pipeline de build/testes/release estabilizado
+- [ ] Documentar backup e restauração PostgreSQL
+- [ ] Implantação controlada com HTTPS e monitoramento
+- [ ] Manual de operação e demonstração de portfólio
+
+## Convenções propostas
+
+- Branches: `feature/v0.2-categorias`, `feature/v0.2-editoras`, `feature/v0.2-fornecedores`
+- Commits: `feat: ...`, `fix: ...`, `test: ...`, `docs: ...`
+- Antes de cada alteração de schema, preservar backup e revisar o script Flyway
