@@ -1,6 +1,7 @@
 export type Livro = {id:number;titulo:string;autor:string;isbn:string;categoria:string;preco:number;quantidade:number;estoqueMinimo:number;estoqueBaixo:boolean;ativo:boolean};
 export type LivroPayload = Pick<Livro,'titulo'|'autor'|'isbn'|'categoria'|'preco'|'estoqueMinimo'>;
 export type Movimento = {id:number;livroId:number;tipo:'ENTRADA'|'SAIDA';quantidade:number;saldoApos:number;observacao:string|null;criadoEm:string};
+export type ExemplarDigital = {id:number;livroId:number;nomeOriginal:string;tipoMime:string;tamanhoBytes:number;sha256:string;criadoEm:string};
 export type Page<T>={content:T[];totalElements:number;totalPages:number;number:number;size:number;first:boolean;last:boolean};
 const BASE=(import.meta.env.VITE_API_URL as string|undefined)?.replace(/\/$/,'')??'';
 async function request<T>(path:string,opts:RequestInit={}):Promise<T>{
@@ -19,5 +20,20 @@ export const api={
   desativar:(id:number)=>request<void>(`/api/v1/livros/${id}`,{method:'DELETE'}),
   movimentar:(id:number,body:{tipo:'ENTRADA'|'SAIDA';quantidade:number;observacao:string})=>request<Movimento>(`/api/v1/livros/${id}/movimentacoes`,{method:'POST',body:JSON.stringify(body)}),
   historico:(id:number,page=0)=>request<Page<Movimento>>(`/api/v1/livros/${id}/movimentacoes?page=${page}&size=100`),
+  exemplares:(livroId:number)=>request<ExemplarDigital[]>(`/api/v1/livros/${livroId}/exemplares-digitais`),
+  enviarExemplar:async(livroId:number,arquivo:File):Promise<ExemplarDigital>=>{
+    const body=new FormData();
+    body.append('arquivo',arquivo);
+    let response:Response;
+    try {response=await fetch(BASE+`/api/v1/livros/${livroId}/exemplares-digitais`,{method:'POST',body});}
+    catch {throw new Error('Falha na conexão com a API durante o upload.');}
+    if(!response.ok){
+      let message=`Erro HTTP ${response.status}`;
+      try {const error=await response.json() as {erro?:string};if(error.erro)message=error.erro;}catch{}
+      throw new Error(message);
+    }
+    return response.json() as Promise<ExemplarDigital>;
+  },
+  urlExemplar:(livroId:number,exemplarId:number,download=false)=>BASE+`/api/v1/livros/${livroId}/exemplares-digitais/${exemplarId}/arquivo`+(download?'?download=true':''),
   health:()=>request<{status:string}>('/actuator/health')
 };
