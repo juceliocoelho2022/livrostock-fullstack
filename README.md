@@ -273,7 +273,7 @@ erDiagram
         bigint livro_id FK
         varchar nome_armazenado UK
         bigint tamanho_bytes
-        char sha256
+        varchar sha256
     }
 ```
 
