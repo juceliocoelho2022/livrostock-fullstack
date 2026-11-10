@@ -77,6 +77,19 @@
 
 ## 🔒 v0.3 — Segurança e operação
 
+### Segurança de PDFs — branch experimental
+
+- [x] Adicionar Spring Security e emissão/validação JWT sob perfil `secure`
+- [x] Autorizar upload para BIBLIOTECARIO e leitura para LEITOR/BIBLIOTECARIO
+- [x] Adequar frontend para login e leitura/download com token Bearer
+- [x] Documentar ativação segura no Windows
+- [ ] Homologar com teste de integração local e sessão expirada
+- [ ] Proteger também operações de cadastro, estoque e relatórios
+- [ ] Criar gestão persistente de usuários e auditoria
+- [ ] Implantar rate limiting, proteção antimalware e gestão de licenças
+
+### Demais itens
+
 - [ ] Autenticação com Spring Security e JWT
 - [ ] Autorização por perfis (ex.: ADMIN, OPERADOR, CONSULTA)
 - [ ] Auditoria de mudanças e movimentações por usuário
