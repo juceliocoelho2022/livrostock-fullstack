@@ -55,6 +55,7 @@ public class BibliotecaDigitalService {
             throw new IllegalArgumentException("Nome do arquivo muito longo");
         }
         Path destino = diretorio.resolve(UUID.randomUUID() + ".pdf").normalize();
+        boolean concluido = false;
         try {
             Files.createDirectories(diretorio);
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -81,12 +82,16 @@ public class BibliotecaDigitalService {
             ExemplarDigital exemplar = new ExemplarDigital(
                     livro, nomeOriginal, destino.getFileName().toString(),
                     Files.size(destino), HexFormat.of().formatHex(digest.digest()));
-            return exemplares.saveAndFlush(exemplar);
+            ExemplarDigital salvo = exemplares.saveAndFlush(exemplar);
+            concluido = true;
+            return salvo;
         } catch (IOException | NoSuchAlgorithmException ex) {
             throw new IllegalStateException("Falha no armazenamento do arquivo", ex);
         } finally {
-            // Remove arquivos incompletos apenas quando uma exceção impediu a gravação:
-            // a limpeza de órfãos em falhas de transação será tratada na próxima iteração.
+            if (!concluido) {
+                try { Files.deleteIfExists(destino); }
+                catch (IOException ignored) { /* limpeza de órfãos requer monitoramento */ }
+            }
         }
     }
 
