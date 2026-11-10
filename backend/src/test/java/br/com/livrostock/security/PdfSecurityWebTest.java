@@ -110,4 +110,27 @@ class PdfSecurityWebTest {
         // Authorized rules leave non-PDF endpoints available in this initial profile.
         mvc.perform(get("/actuator/health")).andExpect(status().isNotFound());
     }
+    @Test void semTokenNaoBaixaPdf() throws Exception {
+        mvc.perform(get("/api/v1/livros/1/exemplares-digitais/10/arquivo"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(service);
+    }
+
+    @Test void leitorPodeLerPdfAutorizado() throws Exception {
+        String token=login("leitor","leitor-laboratorio-123");
+        Livro livro=mock(Livro.class);
+        when(livro.getId()).thenReturn(1L);
+        ExemplarDigital exemplar=mock(ExemplarDigital.class);
+        when(exemplar.getLivro()).thenReturn(livro);
+        when(service.localizar(1L,10L)).thenReturn(exemplar);
+        when(service.abrirArquivo(exemplar))
+                .thenReturn(new org.springframework.core.io.ByteArrayResource("%PDF-1.4".getBytes()));
+        mvc.perform(get("/api/v1/livros/1/exemplares-digitais/10/arquivo")
+                .header("Authorization","Bearer "+token))
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Content-Type-Options","nosniff"))
+                .andExpect(header().string("Content-Disposition",org.hamcrest.Matchers.containsString("inline")))
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF));
+    }
+
 }
