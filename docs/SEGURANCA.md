@@ -87,3 +87,7 @@ npm run build
 A suíte de segurança usa `@WebMvcTest` com perfis simulados. Para homologação, testar o ambiente local com PDF autorizado, verificar 401/403 e os caminhos de Leitura/Download no React.
 
 Veja [regras de negócio](REGRAS_DE_NEGOCIO.md) e [arquitetura/DER](ARQUITETURA.md).
+
+### Validação contínua
+
+A PR de segurança deve passar por **Maven (backend)** e **build TypeScript/Vite (frontend)** antes de qualquer merge. Testes locais e testes de autorização continuam necessários, mesmo após CI verde.
