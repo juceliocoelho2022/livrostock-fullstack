@@ -2,6 +2,7 @@ export type Livro = {id:number;titulo:string;autor:string;isbn:string|null;categ
 export type LivroPayload = Pick<Livro,'titulo'|'autor'|'isbn'|'categoria'|'preco'|'estoqueMinimo'>;
 export type Movimento = {id:number;livroId:number;tipo:'ENTRADA'|'SAIDA';quantidade:number;saldoApos:number;observacao:string|null;criadoEm:string};
 export type ExemplarDigital = {id:number;livroId:number;nomeOriginal:string;tipoMime:string;tamanhoBytes:number;sha256:string;criadoEm:string};
+export type AcervoDigitalItem = {livroId:number;titulo:string;autor:string;categoria:string;exemplarId:number;nomeOriginal:string;tipoMime:string;tamanhoBytes:number;sha256:string;criadoEm:string};
 export type PerfilUsuario='BIBLIOTECARIO'|'LEITOR';
 export type UsuarioResumo={id:number;nomeUsuario:string;perfil:PerfilUsuario;ativo:boolean;criadoEm:string;atualizadoEm:string};
 export type AuditoriaEvento={id:number;usuario:string;acao:string;metodo:string;rota:string;httpStatus:number;criadoEm:string};
@@ -39,6 +40,12 @@ export const api={
   movimentar:(id:number,body:{tipo:'ENTRADA'|'SAIDA';quantidade:number;observacao:string})=>request<Movimento>(`/api/v1/livros/${id}/movimentacoes`,{method:'POST',body:JSON.stringify(body)}),
   historico:(id:number,page=0)=>request<Page<Movimento>>(`/api/v1/livros/${id}/movimentacoes?page=${page}&size=100`),
   exemplares:(livroId:number)=>request<ExemplarDigital[]>(`/api/v1/livros/${livroId}/exemplares-digitais`),
+  acervoDigital:(page=0,size=10,busca='',categoria='')=>{
+    const query=new URLSearchParams({page:String(page),size:String(size)});
+    if(busca.trim())query.set('busca',busca.trim());
+    if(categoria.trim())query.set('categoria',categoria.trim());
+    return request<Page<AcervoDigitalItem>>('/api/v1/acervo-digital?'+query.toString());
+  },
   enviarExemplar:async(livroId:number,arquivo:File):Promise<ExemplarDigital>=>{
     const body=new FormData();
     body.append('arquivo',arquivo);
