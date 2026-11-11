@@ -87,6 +87,14 @@ jobs:
       - name: Testar no PowerShell 7
         shell: pwsh
         run: ./ops/testar-verificador.ps1
+      - name: Analisar sintaxe do script de homologacao v1.0 (sem executa-lo)
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD 'ops/homologar-v1.0.ps1'), [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -ne 0) { $errors | ForEach-Object { Write-Error $_.Message }; throw 'Sintaxe invalida' }
+          Write-Host 'Sintaxe PowerShell v1.0 valida'
 
   backup-restore-e2e:
     name: Docker - backup e restauracao isolada
