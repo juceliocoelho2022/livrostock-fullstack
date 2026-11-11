@@ -1,6 +1,11 @@
 package br.com.livrostock.security;
 
 import br.com.livrostock.api.AuthController;
+import br.com.livrostock.api.LivroController;
+import br.com.livrostock.api.AuditoriaController;
+import br.com.livrostock.service.EstoqueService;
+import br.com.livrostock.service.AuditoriaService;
+import org.springframework.data.domain.Page;
 import br.com.livrostock.api.BibliotecaDigitalController;
 import br.com.livrostock.domain.ExemplarDigital;
 import br.com.livrostock.domain.Livro;
@@ -24,7 +29,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(controllers={AuthController.class, BibliotecaDigitalController.class})
+@WebMvcTest(controllers={AuthController.class, BibliotecaDigitalController.class, LivroController.class, AuditoriaController.class})
 @Import(PdfSecurityConfiguration.class)
 @ActiveProfiles("secure")
 @TestPropertySource(properties={
@@ -36,6 +41,8 @@ class PdfSecurityWebTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper mapper;
     @MockitoBean BibliotecaDigitalService service;
+    @MockitoBean EstoqueService estoque;
+    @MockitoBean AuditoriaService auditoria;
 
     private String login(String usuario,String senha) throws Exception {
         String body = mapper.writeValueAsString(new AuthController.LoginRequest(usuario,senha));
@@ -127,6 +134,64 @@ class PdfSecurityWebTest {
                 .andExpect(header().string("X-Content-Type-Options","nosniff"))
                 .andExpect(header().string("Content-Disposition",org.hamcrest.Matchers.containsString("inline")))
                 .andExpect(content().contentType(MediaType.APPLICATION_PDF));
+    }
+
+    @Test void catalogoExigeTokenNoModoSeguro() throws Exception {
+        mvc.perform(get("/api/v1/livros")).andExpect(status().isUnauthorized());
+        verifyNoInteractions(estoque);
+    }
+
+    @Test void leitorPodeConsultarCatalogo() throws Exception {
+        String token=login("leitor","leitor-laboratorio-123");
+        when(estoque.listar(isNull(),any())).thenReturn(Page.empty());
+        mvc.perform(get("/api/v1/livros").header("Authorization","Bearer "+token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test void leitorNaoPodeCadastrarLivro() throws Exception {
+        String token=login("leitor","leitor-laboratorio-123");
+        mvc.perform(post("/api/v1/livros").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content("{}"))
+            .andExpect(status().isForbidden());
+        verify(estoque,never()).criar(any());
+    }
+
+    @Test void leitorNaoPodeEditarOuDesativarLivro() throws Exception {
+        String token=login("leitor","leitor-laboratorio-123");
+        mvc.perform(put("/api/v1/livros/1").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content("{}"))
+            .andExpect(status().isForbidden());
+        mvc.perform(delete("/api/v1/livros/1").header("Authorization","Bearer "+token))
+            .andExpect(status().isForbidden());
+        verify(estoque,never()).atualizar(anyLong(),any());
+        verify(estoque,never()).desativar(anyLong());
+    }
+
+    @Test void leitorNaoPodeMovimentarEstoque() throws Exception {
+        String token=login("leitor","leitor-laboratorio-123");
+        mvc.perform(post("/api/v1/livros/1/movimentacoes").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content("{}"))
+            .andExpect(status().isForbidden());
+        verify(estoque,never()).movimentar(anyLong(),any());
+    }
+
+    @Test void bibliotecarioPodeDesativarLivro() throws Exception {
+        String token=login("bibliotecario","senha-laboratorio-123");
+        mvc.perform(delete("/api/v1/livros/1").header("Authorization","Bearer "+token))
+            .andExpect(status().isNoContent());
+        verify(estoque).desativar(1L);
+    }
+
+    @Test void auditoriaSomenteBibliotecario() throws Exception {
+        String reader=login("leitor","leitor-laboratorio-123");
+        mvc.perform(get("/api/v1/auditoria").header("Authorization","Bearer "+reader))
+            .andExpect(status().isForbidden());
+        String librarian=login("bibliotecario","senha-laboratorio-123");
+        when(auditoria.listar(any())).thenReturn(Page.empty());
+        mvc.perform(get("/api/v1/auditoria").header("Authorization","Bearer "+librarian))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalElements").value(0));
     }
 
 }
