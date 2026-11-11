@@ -7,8 +7,9 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 public interface LivroRepository extends JpaRepository<Livro,Long> {
  boolean existsByIsbn(String isbn);
+ boolean existsByOrigemDriveId(String origemDriveId);
  @Query("select l from Livro l where l.ativo = true and (:busca is null or lower(l.titulo) like lower(concat('%', cast(:busca as string), '%')) or lower(l.autor) like lower(concat('%', cast(:busca as string), '%')) or l.isbn = :busca)")
  Page<Livro> buscarAtivos(@Param("busca") String busca,Pageable pageable);
  @Lock(LockModeType.PESSIMISTIC_WRITE) @Query("select l from Livro l where l.id = :id") Optional<Livro> bloquearPorId(@Param("id") Long id);
- @Query("select l from Livro l where l.ativo = true and l.quantidade <= l.estoqueMinimo") Page<Livro> estoqueBaixo(Pageable pageable);
+ @Query("select l from Livro l where l.ativo = true and l.somenteDigital = false and l.quantidade <= l.estoqueMinimo") Page<Livro> estoqueBaixo(Pageable pageable);
 }

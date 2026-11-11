@@ -52,6 +52,8 @@ public class PdfSecurityConfiguration {
             .authorizeHttpRequests(a -> a
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/auth/mode", "/actuator/health", "/actuator/info").permitAll()
+                // Importação digital deve existir somente no perfil secure e requer Bibliotecário.
+                .requestMatchers(HttpMethod.POST, "/api/v1/importacoes-digitais/drive").hasRole("BIBLIOTECARIO")
                 // Inventário e PDFs: somente o bibliotecário pode modificar dados.
                 .requestMatchers(HttpMethod.POST, "/api/v1/livros", "/api/v1/livros/*/movimentacoes",
                         "/api/v1/livros/*/exemplares-digitais").hasRole("BIBLIOTECARIO")

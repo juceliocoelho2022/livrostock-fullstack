@@ -332,6 +332,7 @@ Os testes locais de integração realizados na v0.1 confirmaram acesso ao endpoi
 | **v0.4** | Temas Light/Moderado/Dark, RBAC no catálogo e auditoria | PR #3 em revisão |
 | **v0.5** | Usuários PostgreSQL, JWT revogável, auditoria de escrita transacional | PR #4 em revisão |
 | **v0.6** | Backup PostgreSQL + PDFs, verificação SHA-256 e restore isolado | PR #5 em revisão |
+| **v0.7** | Importação privada Drive, livros digitais sem ISBN, arquivo SHA-256 e anti-duplicação | PR #6 em revisão |
 | **v1.0** | Hardening, CI validado, deploy e documentação operacional | Planejada |
 
 Consulte [roadmap](docs/ROADMAP.md), [regras de negócio](docs/REGRAS_DE_NEGOCIO.md), [arquitetura e DER](docs/ARQUITETURA.md) e [API REST](docs/API.md).
@@ -375,6 +376,14 @@ Os scripts não alteram o banco principal. Para garantir consistência entre SQL
 A CI inclui execução no PowerShell 5.1 e 7 e um teste ponta a ponta com PostgreSQL e PDFs descartáveis. A homologação com seus dados reais ainda depende de backup, verificação e teste de restauração local.
 
 **Manual com comandos:** [Backup e restauração v0.6](docs/V0_6_BACKUP_RESTAURACAO.md).
+
+## ☁️ LivroStock v0.7 — importação privada de PDFs do Google Drive
+
+Nova branch `feature/v0.7-importacao-drive-pdfs` com Flyway V5, livros exclusivamente digitais (sem inventar ISBN) e endpoint de importação protegido por JWT, reservado ao Bibliotecário. Cada PDF é validado, associado a um título e rastreado pelo identificador de origem Drive, impedindo importações duplicadas.
+
+Os PDFs do usuário e o pacote de importação são **privados e não fazem parte do GitHub**. O processo requer extração local do pacote, confirmação de backup e execução do importador PowerShell no computador que executa o LivroStock. **Não é sincronização OAuth automática do Drive.**
+
+Consulte o [guia v0.7](docs/V0_7_IMPORTACAO_DRIVE.md) para comandos, segurança e testes.
 
 ## 📄 Licença
 

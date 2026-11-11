@@ -1,4 +1,4 @@
-export type Livro = {id:number;titulo:string;autor:string;isbn:string;categoria:string;preco:number;quantidade:number;estoqueMinimo:number;estoqueBaixo:boolean;ativo:boolean};
+export type Livro = {id:number;titulo:string;autor:string;isbn:string|null;categoria:string;preco:number;quantidade:number;estoqueMinimo:number;estoqueBaixo:boolean;ativo:boolean;somenteDigital:boolean};
 export type LivroPayload = Pick<Livro,'titulo'|'autor'|'isbn'|'categoria'|'preco'|'estoqueMinimo'>;
 export type Movimento = {id:number;livroId:number;tipo:'ENTRADA'|'SAIDA';quantidade:number;saldoApos:number;observacao:string|null;criadoEm:string};
 export type ExemplarDigital = {id:number;livroId:number;nomeOriginal:string;tipoMime:string;tamanhoBytes:number;sha256:string;criadoEm:string};
