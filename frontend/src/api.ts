@@ -2,6 +2,8 @@ export type Livro = {id:number;titulo:string;autor:string;isbn:string;categoria:
 export type LivroPayload = Pick<Livro,'titulo'|'autor'|'isbn'|'categoria'|'preco'|'estoqueMinimo'>;
 export type Movimento = {id:number;livroId:number;tipo:'ENTRADA'|'SAIDA';quantidade:number;saldoApos:number;observacao:string|null;criadoEm:string};
 export type ExemplarDigital = {id:number;livroId:number;nomeOriginal:string;tipoMime:string;tamanhoBytes:number;sha256:string;criadoEm:string};
+export type PerfilUsuario='BIBLIOTECARIO'|'LEITOR';
+export type UsuarioResumo={id:number;nomeUsuario:string;perfil:PerfilUsuario;ativo:boolean;criadoEm:string;atualizadoEm:string};
 export type AuditoriaEvento={id:number;usuario:string;acao:string;metodo:string;rota:string;httpStatus:number;criadoEm:string};
 export type Page<T>={content:T[];totalElements:number;totalPages:number;number:number;size:number;first:boolean;last:boolean};
 const BASE=(import.meta.env.VITE_API_URL as string|undefined)?.replace(/\/$/,'')??'';
@@ -79,6 +81,15 @@ export const api={
     if(!response.ok)throw new Error(response.status===401?'Sessão expirada ou acesso não autorizado.':response.status===403?'Você não tem permissão para este documento.':`Erro HTTP ${response.status} ao carregar PDF.`);
     return response.blob();
   },
+  usuarios:(page=0,size=20)=>request<Page<UsuarioResumo>>(`/api/v1/usuarios?page=${page}&size=${size}`),
+  cadastrarUsuario:(body:{nomeUsuario:string;senha:string;perfil:PerfilUsuario})=>
+    request<UsuarioResumo>('/api/v1/usuarios',{method:'POST',body:JSON.stringify(body)}),
+  alterarPerfilUsuario:(id:number,perfil:PerfilUsuario)=>
+    request<UsuarioResumo>(`/api/v1/usuarios/${id}/perfil`,{method:'PUT',body:JSON.stringify({perfil})}),
+  alterarStatusUsuario:(id:number,ativo:boolean)=>
+    request<UsuarioResumo>(`/api/v1/usuarios/${id}/status`,{method:'PATCH',body:JSON.stringify({ativo})}),
+  alterarSenhaUsuario:(id:number,senha:string)=>
+    request<void>(`/api/v1/usuarios/${id}/senha`,{method:'PUT',body:JSON.stringify({senha})}),
   auditoria:(page=0,size=20)=>request<Page<AuditoriaEvento>>(`/api/v1/auditoria?page=${page}&size=${size}`),
   health:()=>request<{status:string}>('/actuator/health')
 };
