@@ -2,6 +2,9 @@ import BibliotecaDigital from './BibliotecaDigital';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Activity, ArrowDownLeft, ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Boxes, Check, ChevronLeft, ChevronRight, CircleAlert, Clock3, Edit3, Filter, LayoutDashboard, LibraryBig, Menu, MoreHorizontal, FileText, Plus, RefreshCw, Search, ShieldCheck, Trash2, TrendingUp, Wallet, X } from 'lucide-react';
 import {api,type Livro,type LivroPayload,type Movimento} from './api';
+type Tema = 'light'|'dark'|'moderado';
+const temas:ReadonlyArray<Tema>=['light','moderado','dark'];
+
 type View='dashboard'|'livros'|'movimentacoes'|'alertas'|'digital';
 type Modal={type:'novo'}|{type:'editar';livro:Livro}|{type:'movimentar';livro:Livro;modo:'ENTRADA'|'SAIDA'}|{type:'historico';livro:Livro}|{type:'excluir';livro:Livro}|null;
 const currency=(n:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(n);
@@ -15,6 +18,16 @@ function Blank({title,description,children}:{title:string;description:string;chi
 function App(){
  const [view,setView]=useState<View>('dashboard'); const [livros,setLivros]=useState<Livro[]>([]);const [total,setTotal]=useState(0);const [apiOnline,setApiOnline]=useState<boolean|null>(null);const [loading,setLoading]=useState(true);const [error,setError]=useState('');const [toast,setToast]=useState('');const [modal,setModal]=useState<Modal>(null);const [busca,setBusca]=useState('');const [page,setPage]=useState(0);const [menuOpen,setMenuOpen]=useState(false);
  const [historico,setHistorico]=useState<Movimento[]>([]);const [movLoading,setMovLoading]=useState(false);
+ const [tema,setTema]=useState<Tema>(()=>{
+   try {const salvo=window.localStorage.getItem('livrostock.tema');return temas.includes(salvo as Tema)?salvo as Tema:'light';}
+   catch{return 'light';}
+ });
+ useEffect(()=>{
+   document.documentElement.dataset.theme=tema;
+   document.documentElement.style.colorScheme=tema==='dark'?'dark':'light';
+   try{window.localStorage.setItem('livrostock.tema',tema);}catch{/* armazenamento indisponível */}
+ },[tema]);
+
  const load=useCallback(async()=>{setLoading(true);setError('');try{const p=await api.livros(0,1000);setLivros(p.content);setTotal(p.totalElements);setApiOnline(true);}catch(e){setApiOnline(false);setError((e as Error).message);}finally{setLoading(false)}},[]);
  useEffect(()=>{void load()},[load]);
  const notify=(msg:string)=>{setToast(msg);window.setTimeout(()=>setToast(''),4500)};
@@ -31,7 +44,7 @@ function App(){
  return <div className="app-shell">
  <aside className={'sidebar '+(menuOpen?'show':'')}><div className="brand"><div className="brand-icon"><BookOpen size={24}/></div><div><strong>livro<span>stock.</span></strong><small>GESTÃO DE ACERVO</small></div></div><div className="nav-label">WORKSPACE</div><nav>{nav.map(n=><button key={n.id} className={'nav-link '+(view===n.id?'active':'')} onClick={()=>switchView(n.id)}><n.icon size={18}/><span>{n.label}</span>{n.count!==undefined&&n.count>0&&<em>{n.count}</em>}</button>)}</nav><div className="side-bottom"><div className="side-tip"><div className="tip-icon"><ShieldCheck size={18}/></div><strong>Estoque sob controle</strong><span>Organize seu acervo e acompanhe cada movimentação.</span></div><div className="side-footer"><div className="avatar">LS</div><div><b>LivroStock</b><span>Administrador</span></div><MoreHorizontal size={18}/></div></div></aside>
  {menuOpen&&<button className="mobile-overlay" onClick={()=>setMenuOpen(false)} aria-label="Fechar menu"/>}
- <div className="main-wrap"><header className="topbar"><div className="topbar-left"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Abrir menu"><Menu size={22}/></button><span className="breadcrumb">Workspace</span><ChevronRight size={14}/><strong>{view==='dashboard'?'Visão geral':view==='livros'?'Catálogo':view==='alertas'?'Estoque baixo':view==='digital'?'Biblioteca Digital':'Movimentações'}</strong></div><div className="topbar-actions"><div className={'api-status '+(apiOnline?'online':'offline')}><span className="status-dot"/>{apiOnline===null?'Conectando':apiOnline?'API conectada':'API offline'}</div><button className="top-icon" onClick={()=>void load()} title="Atualizar dados"><RefreshCw size={17}/></button><div className="avatar small">LS</div></div></header>
+ <div className="main-wrap"><header className="topbar"><div className="topbar-left"><button className="mobile-menu" onClick={()=>setMenuOpen(true)} aria-label="Abrir menu"><Menu size={22}/></button><span className="breadcrumb">Workspace</span><ChevronRight size={14}/><strong>{view==='dashboard'?'Visão geral':view==='livros'?'Catálogo':view==='alertas'?'Estoque baixo':view==='digital'?'Biblioteca Digital':'Movimentações'}</strong></div><div className="topbar-actions"><div className="theme-control"><label htmlFor="livrostock-tema">Tema</label><select id="livrostock-tema" aria-label="Tema visual" value={tema} onChange={e=>setTema(e.target.value as Tema)}><option value="light">Light ☀️</option><option value="moderado">Moderado ◐</option><option value="dark">Dark 🌙</option></select></div><div className={'api-status '+(apiOnline?'online':'offline')}><span className="status-dot"/>{apiOnline===null?'Conectando':apiOnline?'API conectada':'API offline'}</div><button className="top-icon" onClick={()=>void load()} title="Atualizar dados"><RefreshCw size={17}/></button><div className="avatar small">LS</div></div></header>
  <main className="content"><div className="heading-row"><div><div className="eyebrow"><span className="eyebrow-line"/> CONTROLE DE INVENTÁRIO</div><h1>{view==='dashboard'?'Visão geral':view==='livros'?'Catálogo de livros':view==='alertas'?'Estoque baixo':view==='digital'?'Biblioteca Digital':'Movimentações'}</h1><p className="subtitle">{view==='dashboard'?'Tudo o que você precisa saber sobre seu acervo, em um só lugar.':view==='livros'?'Gerencie títulos, informações e disponibilidade do seu catálogo.':view==='alertas'?'Livros que atingiram o limite mínimo de estoque.':view==='digital'?'Associe, visualize e baixe exemplares PDF dos livros cadastrados.':'Registre entradas e saídas e consulte o histórico de cada livro.'}</p></div><button className="primary-btn" onClick={()=>setModal({type:'novo'})}><Plus size={17}/> Novo livro</button></div>
  {error&&<div className="error-alert"><CircleAlert size={19}/><span>{error}</span><button onClick={()=>void load()}>Tentar novamente</button></div>}
  {view==='digital'&&<BibliotecaDigital livros={livros}/>}
