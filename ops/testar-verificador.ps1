@@ -16,9 +16,10 @@ $verificador = Join-Path $PSScriptRoot 'verificar-backup.ps1'
 
 try {
     foreach ($pasta in @($pastas, $corrompido, $extra)) {
-        New-Item -ItemType Directory -Path (Join-Path $pasta 'database') -Force | Out-Null
-        New-Item -ItemType Directory -Path (Join-Path $pasta 'pdfs') -Force | Out-Null
+        New-Item -ItemType Directory -Path $pasta -Force | Out-Null
     }
+    New-Item -ItemType Directory -Path (Join-Path $pastas 'database') -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $pastas 'pdfs') -Force | Out-Null
     $dump = Join-Path $pastas 'database\livrostock.dump'
     $pdf = Join-Path $pastas 'pdfs\exemplo.pdf'
     [System.IO.File]::WriteAllBytes($dump, [System.Text.Encoding]::UTF8.GetBytes('fixture-dump-nao-restauravel'))
