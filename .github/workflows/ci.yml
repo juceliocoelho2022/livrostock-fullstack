@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [main, develop, feature/v0.2-categorias, 'feature/v0.3-pdf-security', 'feature/v0.4-rbac-auditoria-temas', 'feature/v0.5-usuarios-persistentes', 'feature/v0.6-backup-restore-seguro', 'feature/v0.7-importacao-drive-pdfs', 'feature/v0.8-api-acervo-digital', 'feature/v0.9-integridade-pdfs']
+    branches: [main, develop, feature/v0.2-categorias, 'feature/v0.3-pdf-security', 'feature/v0.4-rbac-auditoria-temas', 'feature/v0.5-usuarios-persistentes', 'feature/v0.6-backup-restore-seguro', 'feature/v0.7-importacao-drive-pdfs', 'feature/v0.8-api-acervo-digital', 'feature/v0.9-integridade-pdfs', 'feature/v1.0-observabilidade-painel']
   pull_request:
 permissions:
   contents: read
@@ -56,7 +56,7 @@ jobs:
           java-version: '21'
           cache: maven
           cache-dependency-path: backend/pom.xml
-      - name: Testar migrations, JWT, importacao e API de acervo com PostgreSQL real
+      - name: Testar migrations, JWT, importacao, integridade e metricas no PostgreSQL
         run: mvn -B --no-transfer-progress -Dtest=UsuarioPostgresIntegrationTest,ImportacaoDigitalIntegrationTest,AcervoDigitalApiIntegrationTest,IntegridadePdfIntegrationTest test
   frontend:
     name: React - TypeScript build
