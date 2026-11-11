@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.LinkOption;
 import java.nio.file.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -137,11 +138,56 @@ public class BibliotecaDigitalService {
         return exemplar;
     }
 
-    public Resource abrirArquivo(ExemplarDigital exemplar) {
+    /** Resultado de auditoria sem divulgação do caminho físico do PDF. */
+    public enum EstadoIntegridade { OK, AUSENTE, DIVERGENTE, ERRO_LEITURA }
+
+    /**
+     * Compara tamanho e SHA-256 de arquivos locais com o registro do banco.
+     * Não altera arquivos nem metadados. Links simbólicos não são seguidos.
+     */
+    public EstadoIntegridade verificarIntegridade(ExemplarDigital exemplar) {
         Path arquivo = diretorio.resolve(exemplar.getNomeArmazenado()).normalize();
-        if (!arquivo.startsWith(diretorio) || !Files.isRegularFile(arquivo)) {
+        if (!arquivo.startsWith(diretorio)) return EstadoIntegridade.DIVERGENTE;
+        if (!Files.isRegularFile(arquivo, LinkOption.NOFOLLOW_LINKS)) return EstadoIntegridade.AUSENTE;
+
+        try {
+            if (Files.size(arquivo) != exemplar.getTamanhoBytes()) {
+                return EstadoIntegridade.DIVERGENTE;
+            }
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            try (InputStream input = Files.newInputStream(arquivo)) {
+                byte[] buffer = new byte[8192];
+                int lidos;
+                while ((lidos = input.read(buffer)) != -1) {
+                    digest.update(buffer, 0, lidos);
+                }
+            }
+            String atual = HexFormat.of().formatHex(digest.digest());
+            return atual.equalsIgnoreCase(exemplar.getSha256())
+                    ? EstadoIntegridade.OK : EstadoIntegridade.DIVERGENTE;
+        } catch (IOException | SecurityException e) {
+            return EstadoIntegridade.ERRO_LEITURA;
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 não está disponível", e);
+        }
+    }
+
+    /**
+     * Só expõe PDFs verificados. Não confundir esta validação com antivírus.
+     * Arquivos alterados não podem ser entregues ao leitor.
+     */
+    public Resource abrirArquivo(ExemplarDigital exemplar) {
+        EstadoIntegridade estado = verificarIntegridade(exemplar);
+        if (estado == EstadoIntegridade.AUSENTE) {
             throw new RecursoNaoEncontradoException("Arquivo digital indisponível");
         }
+        if (estado == EstadoIntegridade.DIVERGENTE) {
+            throw new IllegalStateException("Integridade do PDF comprometida");
+        }
+        if (estado == EstadoIntegridade.ERRO_LEITURA) {
+            throw new IllegalStateException("Não foi possível verificar a integridade do PDF");
+        }
+        Path arquivo = diretorio.resolve(exemplar.getNomeArmazenado()).normalize();
         return new FileSystemResource(arquivo);
     }
 }
