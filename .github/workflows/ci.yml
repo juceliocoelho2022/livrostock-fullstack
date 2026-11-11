@@ -1,9 +1,8 @@
 name: CI
 on:
   push:
-    branches: [main, develop, feature/v0.2-categorias]
+    branches: [main, develop, feature/v0.2-categorias, 'feature/v0.3-pdf-security', 'feature/v0.4-rbac-auditoria-temas', 'feature/v0.5-usuarios-persistentes']
   pull_request:
-    branches: [main, develop, 'feature/v0.3-pdf-security']
 permissions:
   contents: read
 jobs:
