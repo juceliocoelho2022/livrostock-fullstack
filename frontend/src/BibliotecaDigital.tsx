@@ -9,6 +9,12 @@ const data = (value:string) => new Date(value).toLocaleString('pt-BR');
 export default function BibliotecaDigital({livros,onLogout}:Props){
   const [livroId,setLivroId]=useState<number|null>(null);
   const [exemplares,setExemplares]=useState<ExemplarDigital[]>([]);
+  // Mostra automaticamente todos os PDFs dos livros exclusivamente digitais.
+  // O seletor abaixo continua servindo para associar PDFs a um livro específico.
+  const [acervoDigital,setAcervoDigital]=useState<Array<{livro:Livro;exemplar:ExemplarDigital}>>([]);
+  const [carregandoAcervo,setCarregandoAcervo]=useState(false);
+  const [erroAcervo,setErroAcervo]=useState('');
+  const [revisaoAcervo,setRevisaoAcervo]=useState(0);
   const [arquivo,setArquivo]=useState<File|null>(null);
   const [carregando,setCarregando]=useState(false);
   const [enviando,setEnviando]=useState(false);
@@ -56,6 +62,28 @@ export default function BibliotecaDigital({livros,onLogout}:Props){
     return ()=>{ativo=false;};
   },[livroId,modoVerificado,falhaModo,seguro,autenticado]);
 
+  // Carrega os livros digitais em conjunto, sem depender do livro selecionado.
+  // Para o pequeno acervo local, reutilizamos a API autenticada já existente.
+  useEffect(()=>{
+    if(!modoVerificado||falhaModo||(seguro&&!autenticado)){
+      setAcervoDigital([]);setCarregandoAcervo(false);return;
+    }
+    const digitais=livros.filter(l=>l.somenteDigital);
+    if(digitais.length===0){setAcervoDigital([]);setCarregandoAcervo(false);return;}
+    let ativo=true;
+    setCarregandoAcervo(true);setErroAcervo('');
+    Promise.all(digitais.map(async livro=>({
+      livro,arquivos:await api.exemplares(livro.id)
+    }))).then(resultados=>{
+      if(!ativo)return;
+      setAcervoDigital(resultados.flatMap(({livro,arquivos})=>
+        arquivos.map(exemplar=>({livro,exemplar}))));
+    }).catch(e=>{
+      if(ativo)setErroAcervo((e as Error).message);
+    }).finally(()=>{if(ativo)setCarregandoAcervo(false);});
+    return ()=>{ativo=false;};
+  },[livros,modoVerificado,falhaModo,seguro,autenticado,revisaoAcervo]);
+
   // Blob URLs are local to the browser and allow inline PDF reading without placing JWTs in URLs.
   useEffect(()=>()=>{if(readerUrl)URL.revokeObjectURL(readerUrl);},[readerUrl]);
 
@@ -102,6 +130,7 @@ export default function BibliotecaDigital({livros,onLogout}:Props){
       if(input)input.value='';
       setSucesso('PDF associado ao livro com sucesso.');
       await atualizar();
+      setRevisaoAcervo(n=>n+1);
     }catch(e){setErro((e as Error).message);}
     finally{setEnviando(false);}
   }
@@ -156,6 +185,38 @@ export default function BibliotecaDigital({livros,onLogout}:Props){
     </div>:
     <>
       <div className="panel digital-box">
+        <div className="digital-list-header">
+          <div><span className="panel-mini">ACERVO IMPORTADO</span><h3>Meus livros digitais</h3></div>
+          <button type="button" className="secondary-btn"
+             onClick={()=>setRevisaoAcervo(n=>n+1)} disabled={carregandoAcervo}>
+            <RefreshCw size={15}/> Atualizar
+          </button>
+        </div>
+        <p className="form-help">Todos os PDFs dos livros digitais, independentemente do livro selecionado abaixo.</p>
+        {erroAcervo&&<p className="digital-error" role="alert">{erroAcervo}</p>}
+        {carregandoAcervo?<div className="loading-state"><RefreshCw className="spin" size={17}/> Carregando acervo...</div>:
+         acervoDigital.length===0?<div className="digital-empty">Nenhum PDF digital encontrado no acervo.</div>:
+         <div className="digital-list">
+           {acervoDigital.map(({livro,exemplar})=><div className="digital-file" key={exemplar.id}>
+             <div className="digital-file-icon"><BookOpen size={23}/></div>
+             <div className="digital-file-details">
+               <strong>{livro.titulo}</strong>
+               <small>{livro.autor} · {exemplar.nomeOriginal} · {tamanho(exemplar.tamanhoBytes)}</small>
+             </div>
+             <div className="digital-actions">
+               <button type="button" className="secondary-btn"
+                 onClick={()=>void abrir(exemplar)} aria-label={`Ler ${livro.titulo}`}>
+                 <BookOpen size={15}/> Ler
+               </button>
+               <button type="button" className="secondary-btn" disabled={baixando!==null}
+                 onClick={()=>void baixar(exemplar)} aria-label={`Baixar ${livro.titulo}`}>
+                 <Download size={15}/>{baixando===exemplar.id?'Baixando...':'Baixar'}
+               </button>
+             </div>
+           </div>)}
+         </div>}
+      </div>
+      <div className="panel digital-box">
         <label className="digital-label" htmlFor="digital-livro">Livro associado</label>
         <select id="digital-livro" className="digital-select" value={livroId??''} disabled={livros.length===0}
           onChange={e=>{setLivroId(Number(e.target.value));setArquivo(null);setSucesso('');}}>
@@ -176,7 +237,7 @@ export default function BibliotecaDigital({livros,onLogout}:Props){
         {sucesso&&<p className="digital-success" role="status">{sucesso}</p>}
       </div>
       <div className="panel digital-box">
-        <div className="digital-list-header"><div><span className="panel-mini">DOCUMENTOS VINCULADOS</span><h3>Exemplares digitais</h3></div>
+        <div className="digital-list-header"><div><span className="panel-mini">DOCUMENTOS VINCULADOS</span><h3>Exemplares do livro selecionado</h3></div>
           <button type="button" className="secondary-btn" onClick={()=>void atualizar()} disabled={livroId===null||carregando}>
             <RefreshCw size={15}/> Atualizar</button></div>
         {carregando?<div className="loading-state"><RefreshCw className="spin" size={17}/> Carregando PDFs...</div>:
