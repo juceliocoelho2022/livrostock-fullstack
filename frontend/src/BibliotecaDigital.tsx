@@ -162,7 +162,7 @@ export default function BibliotecaDigital({livros,onLogout}:Props){
           {livros.length===0?<option value="">Nenhum livro cadastrado</option>:
            livros.map(l=><option key={l.id} value={l.id}>{l.titulo} — {l.autor}</option>)}
         </select>
-        {selecionado&&<p className="digital-book-meta">ISBN: {selecionado.isbn} · {selecionado.categoria}</p>}
+        {selecionado&&<p className="digital-book-meta">{selecionado.somenteDigital?'Livro exclusivamente digital · ':`ISBN: ${selecionado.isbn??'não informado'} · `}{selecionado.categoria}</p>}
         {!somenteLeitura&&<form onSubmit={e=>void enviar(e)} className="digital-upload">
           <label htmlFor="livrostock-pdf-upload"><FilePlus2 size={19}/> Selecionar arquivo PDF</label>
           <input id="livrostock-pdf-upload" type="file" accept=".pdf,application/pdf" disabled={livroId===null||enviando}
