@@ -25,3 +25,9 @@ coverage/
 
 # Cache incremental do TypeScript
 *.tsbuildinfo
+
+# Backups e dumps locais privados (nunca versionar)
+*.dump
+livrostock_backup_*.zip
+**/LivroStock-Backups/
+**/LivroStock-Restauracoes/
