@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers={AuthController.class, BibliotecaDigitalController.class, LivroController.class, AuditoriaController.class})
-@Import(PdfSecurityConfiguration.class)
+@Import({PdfSecurityConfiguration.class, AuditoriaMvcConfiguration.class})
 @ActiveProfiles("secure")
 @TestPropertySource(properties={
         "LIVROSTOCK_JWT_SECRET=abcdefghijklmnopqrstuvwxzy0123456789-EXEMPLO-SOMENTE-TESTE",
@@ -155,6 +155,7 @@ class PdfSecurityWebTest {
                 .contentType(MediaType.APPLICATION_JSON).content("{}"))
             .andExpect(status().isForbidden());
         verify(estoque,never()).criar(any());
+        verifyNoInteractions(auditoria);
     }
 
     @Test void leitorNaoPodeEditarOuDesativarLivro() throws Exception {
@@ -181,6 +182,8 @@ class PdfSecurityWebTest {
         mvc.perform(delete("/api/v1/livros/1").header("Authorization","Bearer "+token))
             .andExpect(status().isNoContent());
         verify(estoque).desativar(1L);
+        verify(auditoria).registrar("bibliotecario","LIVRO_DESATIVAR","DELETE",
+                "/api/v1/livros/1",204);
     }
 
     @Test void auditoriaSomenteBibliotecario() throws Exception {
