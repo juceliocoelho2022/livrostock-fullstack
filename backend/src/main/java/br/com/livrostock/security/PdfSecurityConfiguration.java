@@ -59,6 +59,9 @@ public class PdfSecurityConfiguration {
                         "/api/v1/livros/*/exemplares-digitais").hasRole("BIBLIOTECARIO")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/livros/*").hasRole("BIBLIOTECARIO")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/livros/*").hasRole("BIBLIOTECARIO")
+                // Métricas operacionais e Prometheus só para bibliotecários autenticados.
+                .requestMatchers(HttpMethod.GET, "/actuator/metrics", "/actuator/metrics/**",
+                        "/actuator/prometheus").hasRole("BIBLIOTECARIO")
                 // Apenas bibliotecário pode auditar hashes e disponibilidade dos arquivos.
                 .requestMatchers(HttpMethod.GET, "/api/v1/acervo-digital/integridade").hasRole("BIBLIOTECARIO")
                 // O catálogo global de PDFs exige JWT; metadados nunca são públicos.
