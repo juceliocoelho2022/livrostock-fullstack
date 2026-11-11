@@ -1,17 +1,22 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { BookOpen, Download, ExternalLink, FilePlus2, FileText, RefreshCw, UploadCloud } from 'lucide-react';
-import { api, type ExemplarDigital, type Livro } from './api';
+import { api, type AcervoDigitalItem, type ExemplarDigital, type Livro } from './api';
 
 type Props = { livros: Livro[]; onLogout?:()=>void };
 const tamanho = (bytes:number) => new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1}).format(bytes/1024)+' KB';
 const data = (value:string) => new Date(value).toLocaleString('pt-BR');
+const comoExemplar = (item:AcervoDigitalItem):ExemplarDigital => ({id:item.exemplarId,livroId:item.livroId,nomeOriginal:item.nomeOriginal,tipoMime:item.tipoMime,tamanhoBytes:item.tamanhoBytes,sha256:item.sha256,criadoEm:item.criadoEm});
 
 export default function BibliotecaDigital({livros,onLogout}:Props){
   const [livroId,setLivroId]=useState<number|null>(null);
   const [exemplares,setExemplares]=useState<ExemplarDigital[]>([]);
-  // Mostra automaticamente todos os PDFs dos livros exclusivamente digitais.
-  // O seletor abaixo continua servindo para associar PDFs a um livro específico.
-  const [acervoDigital,setAcervoDigital]=useState<Array<{livro:Livro;exemplar:ExemplarDigital}>>([]);
+  const [acervoDigital,setAcervoDigital]=useState<AcervoDigitalItem[]>([]);
+  const [acervoTotal,setAcervoTotal]=useState(0);
+  const [acervoPaginas,setAcervoPaginas]=useState(1);
+  const [acervoPagina,setAcervoPagina]=useState(0);
+  const [buscaDigitada,setBuscaDigitada]=useState('');
+  const [buscaAplicada,setBuscaAplicada]=useState('');
+  const [categoriaAcervo,setCategoriaAcervo]=useState('');
   const [carregandoAcervo,setCarregandoAcervo]=useState(false);
   const [erroAcervo,setErroAcervo]=useState('');
   const [revisaoAcervo,setRevisaoAcervo]=useState(0);
@@ -62,27 +67,23 @@ export default function BibliotecaDigital({livros,onLogout}:Props){
     return ()=>{ativo=false;};
   },[livroId,modoVerificado,falhaModo,seguro,autenticado]);
 
-  // Carrega os livros digitais em conjunto, sem depender do livro selecionado.
-  // Para o pequeno acervo local, reutilizamos a API autenticada já existente.
+  // Uma unica requisicao paginada substitui as N requisicoes por livro da v0.7.
   useEffect(()=>{
     if(!modoVerificado||falhaModo||(seguro&&!autenticado)){
-      setAcervoDigital([]);setCarregandoAcervo(false);return;
+      setAcervoDigital([]);setAcervoTotal(0);setCarregandoAcervo(false);return;
     }
-    const digitais=livros.filter(l=>l.somenteDigital);
-    if(digitais.length===0){setAcervoDigital([]);setCarregandoAcervo(false);return;}
     let ativo=true;
     setCarregandoAcervo(true);setErroAcervo('');
-    Promise.all(digitais.map(async livro=>({
-      livro,arquivos:await api.exemplares(livro.id)
-    }))).then(resultados=>{
-      if(!ativo)return;
-      setAcervoDigital(resultados.flatMap(({livro,arquivos})=>
-        arquivos.map(exemplar=>({livro,exemplar}))));
-    }).catch(e=>{
-      if(ativo)setErroAcervo((e as Error).message);
-    }).finally(()=>{if(ativo)setCarregandoAcervo(false);});
+    api.acervoDigital(acervoPagina,10,buscaAplicada,categoriaAcervo)
+      .then(p=>{
+        if(!ativo)return;
+        setAcervoDigital(p.content);
+        setAcervoTotal(p.totalElements);
+        setAcervoPaginas(Math.max(1,p.totalPages));
+      }).catch(e=>{if(ativo){setAcervoDigital([]);setErroAcervo((e as Error).message);}})
+      .finally(()=>{if(ativo)setCarregandoAcervo(false);});
     return ()=>{ativo=false;};
-  },[livros,modoVerificado,falhaModo,seguro,autenticado,revisaoAcervo]);
+  },[modoVerificado,falhaModo,seguro,autenticado,revisaoAcervo,acervoPagina,buscaAplicada,categoriaAcervo]);
 
   // Blob URLs are local to the browser and allow inline PDF reading without placing JWTs in URLs.
   useEffect(()=>()=>{if(readerUrl)URL.revokeObjectURL(readerUrl);},[readerUrl]);
@@ -156,6 +157,7 @@ export default function BibliotecaDigital({livros,onLogout}:Props){
     finally{setBaixando(null);}
   }
 
+  const categorias=Array.from(new Set(livros.filter(l=>l.somenteDigital).map(l=>l.categoria))).sort((a,b)=>a.localeCompare(b,'pt-BR'));
   const selecionado=livros.find(l=>l.id===livroId);
   const somenteLeitura=seguro&&!perfis.includes('BIBLIOTECARIO');
   return <section className="digital-library">
@@ -192,29 +194,52 @@ export default function BibliotecaDigital({livros,onLogout}:Props){
             <RefreshCw size={15}/> Atualizar
           </button>
         </div>
-        <p className="form-help">Todos os PDFs dos livros digitais, independentemente do livro selecionado abaixo.</p>
+        <p className="form-help">Pesquise todo o acervo por titulo ou autor. Cada pagina consulta a API segura.</p>
+        <form className="table-tools" style={{padding:'15px 0'}} onSubmit={e=>{e.preventDefault();setAcervoPagina(0);setBuscaAplicada(buscaDigitada.trim());}}>
+          <div className="search-field" style={{minWidth:180}}>
+            <input type="search" value={buscaDigitada} aria-label="Pesquisar no acervo digital"
+               placeholder="Buscar titulo ou autor" onChange={e=>setBuscaDigitada(e.target.value)}/>
+          </div>
+          <select className="digital-select" aria-label="Filtrar por categoria" value={categoriaAcervo}
+             style={{maxWidth:225}}
+             onChange={e=>{setCategoriaAcervo(e.target.value);setAcervoPagina(0);}}>
+            <option value="">Todas as categorias</option>
+            {categorias.map(c=><option value={c} key={c}>{c}</option>)}
+          </select>
+          <button type="submit" className="secondary-btn">Pesquisar</button>
+        </form>
+        <p className="form-help">{acervoTotal} arquivo(s) encontrado(s).</p>
         {erroAcervo&&<p className="digital-error" role="alert">{erroAcervo}</p>}
         {carregandoAcervo?<div className="loading-state"><RefreshCw className="spin" size={17}/> Carregando acervo...</div>:
          acervoDigital.length===0?<div className="digital-empty">Nenhum PDF digital encontrado no acervo.</div>:
          <div className="digital-list">
-           {acervoDigital.map(({livro,exemplar})=><div className="digital-file" key={exemplar.id}>
+           {acervoDigital.map(item=><div className="digital-file" key={item.exemplarId}>
              <div className="digital-file-icon"><BookOpen size={23}/></div>
              <div className="digital-file-details">
-               <strong>{livro.titulo}</strong>
-               <small>{livro.autor} · {exemplar.nomeOriginal} · {tamanho(exemplar.tamanhoBytes)}</small>
+               <strong>{item.titulo}</strong>
+               <small>{item.autor} · {item.categoria} · {item.nomeOriginal} · {tamanho(item.tamanhoBytes)}</small>
              </div>
              <div className="digital-actions">
                <button type="button" className="secondary-btn"
-                 onClick={()=>void abrir(exemplar)} aria-label={`Ler ${livro.titulo}`}>
+                 onClick={()=>void abrir(comoExemplar(item))} aria-label={`Ler ${item.titulo}`}>
                  <BookOpen size={15}/> Ler
                </button>
                <button type="button" className="secondary-btn" disabled={baixando!==null}
-                 onClick={()=>void baixar(exemplar)} aria-label={`Baixar ${livro.titulo}`}>
-                 <Download size={15}/>{baixando===exemplar.id?'Baixando...':'Baixar'}
+                 onClick={()=>void baixar(comoExemplar(item))} aria-label={`Baixar ${item.titulo}`}>
+                 <Download size={15}/>{baixando===item.exemplarId?'Baixando...':'Baixar'}
                </button>
              </div>
            </div>)}
          </div>}
+        <div className="table-footer">
+          <span>Pagina {acervoPagina+1} de {acervoPaginas}</span>
+          <div className="pagination">
+            <button type="button" aria-label="Pagina anterior" disabled={acervoPagina===0||carregandoAcervo}
+              onClick={()=>setAcervoPagina(p=>p-1)}>‹</button>
+            <button type="button" aria-label="Proxima pagina" disabled={acervoPagina+1>=acervoPaginas||carregandoAcervo}
+              onClick={()=>setAcervoPagina(p=>p+1)}>›</button>
+          </div>
+        </div>
       </div>
       <div className="panel digital-box">
         <label className="digital-label" htmlFor="digital-livro">Livro associado</label>
