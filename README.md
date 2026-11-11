@@ -330,6 +330,7 @@ Os testes locais de integração realizados na v0.1 confirmaram acesso ao endpoi
 | **v0.2** | Exemplares PDF, categorias, editoras e fornecedores; testes de integração | Em desenvolvimento |
 | **v0.3** | JWT para Biblioteca Digital e perfis Bibliotecário/Leitor | Implementado em branch, homologado localmente |
 | **v0.4** | Temas Light/Moderado/Dark, RBAC no catálogo e auditoria | PR #3 em revisão |
+| **v0.5** | Usuários PostgreSQL, JWT revogável, auditoria de escrita transacional | PR #4 em revisão |
 | **v1.0** | Hardening, CI validado, deploy e documentação operacional | Planejada |
 
 Consulte [roadmap](docs/ROADMAP.md), [regras de negócio](docs/REGRAS_DE_NEGOCIO.md), [arquitetura e DER](docs/ARQUITETURA.md) e [API REST](docs/API.md).
@@ -351,6 +352,18 @@ No perfil Spring `secure`, o login JWT passa a proteger **catálogo, movimentaç
 A sessão é encerrada ao expirar o token (30 minutos) ou quando a API devolve `401`. O comportamento sem `secure` é mantido para desenvolvimento local e não pode ser publicado.
 
 **Ainda não há gestão de usuários persistente nem auditoria forense/transacional.** Consulte [guia detalhado da v0.4](docs/V0_4_TEMAS_SEGURANCA_AUDITORIA.md). Não mescle a PR até testar a migration V3 no PostgreSQL real e homologar os temas e perfis no navegador.
+
+## 👥 LivroStock v0.5 — usuários persistidos no PostgreSQL
+
+A branch `feature/v0.5-usuarios-persistentes` adiciona a migration **Flyway V4**, login via contas armazenadas no PostgreSQL, senhas BCrypt e uma interface **Usuários** exclusiva para Bibliotecários. Alterações de senha, perfil e status de conta invalidam imediatamente tokens JWT antigos.
+
+No **primeiro início** com a nova tabela vazia, os dois perfis da v0.4 são criados usando os usuários e senhas já definidos nas variáveis de ambiente. Em reinícios seguintes, as senhas do banco não são sobrescritas.
+
+Também reforça a auditoria de cadastro/edição/desativação de livros, movimentações, contas e upload de PDFs na mesma transação. Leitura e download continuam sendo auditados após a resposta.
+
+CI com Java 21, React e integração com PostgreSQL 16 isolado. **Não mesclar antes de backup e homologação local com o banco existente.**
+
+Leia o [guia da v0.5 e checklist de homologação](docs/V0_5_USUARIOS_PERSISTENTES.md).
 
 ## 📄 Licença
 
