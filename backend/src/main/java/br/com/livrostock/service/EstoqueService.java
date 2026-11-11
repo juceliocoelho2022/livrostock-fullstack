@@ -47,6 +47,9 @@ public class EstoqueService {
     public LivroResponse atualizar(Long id, LivroRequest r) {
         Livro livro = livros.bloquearPorId(id).filter(Livro::isAtivo)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Livro não encontrado"));
+        if (livro.isSomenteDigital()) {
+            throw new IllegalArgumentException("Livro exclusivamente digital não pode ser editado pelo formulário de estoque");
+        }
         if (!livro.getIsbn().equals(r.isbn())) {
             throw new IllegalArgumentException("ISBN não pode ser alterado");
         }
@@ -67,6 +70,9 @@ public class EstoqueService {
     public MovimentacaoResponse movimentar(Long id, MovimentacaoRequest r) {
         Livro livro = livros.bloquearPorId(id).filter(Livro::isAtivo)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Livro não encontrado"));
+        if (livro.isSomenteDigital()) {
+            throw new IllegalArgumentException("Livro exclusivamente digital não possui movimentações físicas");
+        }
         int delta = r.tipo() == TipoMovimentacao.ENTRADA ? r.quantidade() : -r.quantidade();
         livro.movimentar(delta);
         Movimentacao movimento = movimentacoes.save(
