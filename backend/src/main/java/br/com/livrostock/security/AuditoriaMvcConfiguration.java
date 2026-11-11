@@ -15,8 +15,9 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Registra somente operações concluídas com sucesso em modo seguro.
- * O registro é independente da transação original; não substitui auditoria forense.
+ * Somente eventos de leitura/download de PDF são registrados após a resposta.
+ * Escritas de catálogo/estoque/contas e upload de PDF geram auditoria na
+ * própria transação de negócio; não duplicar eventos neste interceptor.
  */
 @Configuration
 @Profile("secure")
@@ -31,52 +32,27 @@ public class AuditoriaMvcConfiguration implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         AuditoriaService auditoria = service.getIfAvailable();
-        // No @WebMvcTest o repositório JPA não é carregado; a segurança pode ser testada isoladamente.
         if (auditoria != null) {
-            registry.addInterceptor(new RegistroInterceptor(auditoria))
-                    .addPathPatterns("/api/v1/livros", "/api/v1/livros/**");
+            registry.addInterceptor(new RegistroLeituraInterceptor(auditoria))
+                    .addPathPatterns("/api/v1/livros/*/exemplares-digitais/*/arquivo");
         }
     }
 
-    private record RegistroInterceptor(AuditoriaService service) implements HandlerInterceptor {
+    private record RegistroLeituraInterceptor(AuditoriaService service) implements HandlerInterceptor {
         @Override
         public void afterCompletion(HttpServletRequest request, HttpServletResponse response,
                                     Object handler, Exception ex) {
-            int status = response.getStatus();
-            if (ex != null || status < 200 || status >= 300) return;
-
-            String metodo = request.getMethod();
-            String rota = request.getRequestURI();
-            String acao;
-
-            if ("GET".equals(metodo)) {
-                if (!rota.matches("^/api/v1/livros/\\d+/exemplares-digitais/\\d+/arquivo$")) return;
-                acao = "true".equalsIgnoreCase(request.getParameter("download")) ? "PDF_DOWNLOAD" : "PDF_LEITURA";
-            } else if ("POST".equals(metodo) && rota.matches("^/api/v1/livros/\\d+/movimentacoes$")) {
-                acao = "ESTOQUE_MOVIMENTAR";
-            } else if ("POST".equals(metodo) && rota.matches("^/api/v1/livros/\\d+/exemplares-digitais$")) {
-                acao = "PDF_UPLOAD";
-            } else if ("POST".equals(metodo) && "/api/v1/livros".equals(rota)) {
-                acao = "LIVRO_CRIAR";
-            } else if ("PUT".equals(metodo) && rota.matches("^/api/v1/livros/\\d+$")) {
-                acao = "LIVRO_EDITAR";
-            } else if ("DELETE".equals(metodo) && rota.matches("^/api/v1/livros/\\d+$")) {
-                acao = "LIVRO_DESATIVAR";
-            } else {
-                return;
-            }
-
+            if (ex != null || response.getStatus() != 200 || !"GET".equals(request.getMethod())) return;
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) return;
-            // Nunca registrar headers Authorization, passwords ou corpo da requisição.
-            String usuario = auth.getName();
-            if (usuario.length() > 120) usuario = usuario.substring(0, 120);
+            String acao = "true".equalsIgnoreCase(request.getParameter("download"))
+                    ? "PDF_DOWNLOAD" : "PDF_LEITURA";
+            String rota = request.getRequestURI();
             if (rota.length() > 255) rota = rota.substring(0, 255);
             try {
-                service.registrar(usuario, acao, metodo, rota, status);
+                service.registrar(auth.getName(), acao, "GET", rota, 200);
             } catch (RuntimeException e) {
-                // Operação já pode ter sido confirmada; erro de auditoria precisa de alerta operacional.
-                LOG.error("Falha ao persistir auditoria da operacao {}", acao, e);
+                LOG.error("Falha ao persistir auditoria da leitura/download", e);
             }
         }
     }

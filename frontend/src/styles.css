@@ -97,3 +97,24 @@
 :root[data-theme='dark'] .audit-title h3{color:#e9f3f7}
 :root[data-theme='dark'] .audit-title p{color:#afc5cf}
 @media(max-width:740px){.audit-header{padding:18px;flex-wrap:wrap}}
+
+
+/* v0.5: gerenciamento de usuários no tema selecionado */
+.users-layout{display:grid;gap:17px}.users-panel{overflow:hidden}
+.users-form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:13px;align-items:end;padding:0 27px 27px}
+.users-form label,.users-reset label{font-size:11px;font-weight:700;display:grid;gap:7px;color:#48616d}
+.users-form input,.users-form select,.users-reset input,.users-inline-select{border:1px solid #dce6e8;border-radius:8px;background:#fff;color:#2d4956;padding:10px;font:500 12px 'DM Sans',sans-serif}
+.users-inline-select{width:100%;max-width:165px}
+.users-actions{display:flex;gap:7px;align-items:center}
+.users-actions .secondary-btn{display:flex;gap:5px;align-items:center;padding:8px;font-size:11px}
+.users-reset{margin:16px 27px;padding:15px;border:1px solid #d8e5e5;background:#f6faf9;border-radius:10px;display:flex;align-items:end;gap:10px;flex-wrap:wrap}
+.users-reset label{flex:1;min-width:170px}.users-message{margin:10px 27px}
+:root[data-theme='moderado'] .users-form input,:root[data-theme='moderado'] .users-form select,
+:root[data-theme='moderado'] .users-reset input,:root[data-theme='moderado'] .users-inline-select{background:#fcfdfb;color:#34515d;border-color:#cad9da}
+:root[data-theme='dark'] .users-form label,:root[data-theme='dark'] .users-reset label{color:#d0e1e9}
+:root[data-theme='dark'] .users-form input,:root[data-theme='dark'] .users-form select,
+:root[data-theme='dark'] .users-reset input,:root[data-theme='dark'] .users-inline-select{background:#263b4a;color:#e5f1f3;border-color:#436073}
+:root[data-theme='dark'] .users-reset{background:#243a47;border-color:#405869}
+:root[data-theme='dark'] .users-panel td strong{color:#eaf5f7}
+@media(max-width:1050px){.users-form{grid-template-columns:1fr 1fr}.users-form .primary-btn{justify-self:start}}
+@media(max-width:740px){.users-form{grid-template-columns:1fr;padding:0 18px 18px}.users-reset{margin:15px 18px}.users-actions{flex-wrap:wrap}}

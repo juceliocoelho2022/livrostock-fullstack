@@ -1,6 +1,11 @@
 package br.com.livrostock.security;
 
 import br.com.livrostock.api.AuthController;
+import br.com.livrostock.api.UsuarioController;
+import br.com.livrostock.domain.Usuario;
+import br.com.livrostock.domain.PerfilUsuario;
+import br.com.livrostock.repository.UsuarioRepository;
+import br.com.livrostock.service.UsuarioService;
 import br.com.livrostock.api.LivroController;
 import br.com.livrostock.api.AuditoriaController;
 import br.com.livrostock.service.EstoqueService;
@@ -13,6 +18,11 @@ import br.com.livrostock.service.BibliotecaDigitalService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.security.core.userdetails.User;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -29,7 +39,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(controllers={AuthController.class, BibliotecaDigitalController.class, LivroController.class, AuditoriaController.class})
+@WebMvcTest(controllers={AuthController.class, BibliotecaDigitalController.class, LivroController.class, AuditoriaController.class, UsuarioController.class})
 @Import({PdfSecurityConfiguration.class, AuditoriaMvcConfiguration.class})
 @ActiveProfiles("secure")
 @TestPropertySource(properties={
@@ -43,6 +53,35 @@ class PdfSecurityWebTest {
     @MockitoBean BibliotecaDigitalService service;
     @MockitoBean EstoqueService estoque;
     @MockitoBean AuditoriaService auditoria;
+    @MockitoBean UsuarioService usuarioService;
+    @MockitoBean UsuarioRepository usuarios;
+    private final AtomicInteger versaoBibliotecario = new AtomicInteger(0);
+    private final AtomicBoolean bibliotecarioAtivo = new AtomicBoolean(true);
+
+    @BeforeEach
+    void configurarUsuariosPersistidos() {
+        versaoBibliotecario.set(0);
+        bibliotecarioAtivo.set(true);
+        Usuario bibliotecario = mock(Usuario.class);
+        when(bibliotecario.getVersaoToken()).thenAnswer(i -> versaoBibliotecario.get());
+        when(bibliotecario.isAtivo()).thenAnswer(i -> bibliotecarioAtivo.get());
+        when(bibliotecario.getPerfil()).thenReturn(PerfilUsuario.BIBLIOTECARIO);
+        Usuario leitor = mock(Usuario.class);
+        when(leitor.getVersaoToken()).thenReturn(0);
+        when(leitor.isAtivo()).thenReturn(true);
+        when(leitor.getPerfil()).thenReturn(PerfilUsuario.LEITOR);
+        when(usuarios.findByNomeUsuario("bibliotecario")).thenReturn(Optional.of(bibliotecario));
+        when(usuarios.findByNomeUsuario("leitor")).thenReturn(Optional.of(leitor));
+        org.springframework.security.crypto.password.PasswordEncoder encoder =
+                new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+        when(usuarioService.loadUserByUsername("bibliotecario")).thenReturn(
+                User.withUsername("bibliotecario").password(encoder.encode("senha-laboratorio-123"))
+                        .roles("BIBLIOTECARIO").build());
+        when(usuarioService.loadUserByUsername("leitor")).thenReturn(
+                User.withUsername("leitor").password(encoder.encode("leitor-laboratorio-123"))
+                        .roles("LEITOR").build());
+    }
+
 
     private String login(String usuario,String senha) throws Exception {
         String body = mapper.writeValueAsString(new AuthController.LoginRequest(usuario,senha));
@@ -182,8 +221,9 @@ class PdfSecurityWebTest {
         mvc.perform(delete("/api/v1/livros/1").header("Authorization","Bearer "+token))
             .andExpect(status().isNoContent());
         verify(estoque).desativar(1L);
-        verify(auditoria).registrar("bibliotecario","LIVRO_DESATIVAR","DELETE",
-                "/api/v1/livros/1",204);
+        // A auditoria de escrita agora é chamada dentro da transação do EstoqueService,
+        // não pelo interceptor MVC após a resposta.
+        verifyNoInteractions(auditoria);
     }
 
     @Test void auditoriaSomenteBibliotecario() throws Exception {
@@ -195,6 +235,45 @@ class PdfSecurityWebTest {
         mvc.perform(get("/api/v1/auditoria").header("Authorization","Bearer "+librarian))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test void leitorNaoPodeListarUsuarios() throws Exception {
+        String token = login("leitor", "leitor-laboratorio-123");
+        mvc.perform(get("/api/v1/usuarios").header("Authorization", "Bearer " + token))
+            .andExpect(status().isForbidden());
+        verify(usuarioService, never()).listar(any());
+    }
+
+    @Test void bibliotecarioPodeListarUsuariosSemExporSenhas() throws Exception {
+        String token = login("bibliotecario", "senha-laboratorio-123");
+        when(usuarioService.listar(any())).thenReturn(Page.empty());
+        mvc.perform(get("/api/v1/usuarios").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test void leitorNaoPodeCadastrarUsuario() throws Exception {
+        String token = login("leitor", "leitor-laboratorio-123");
+        mvc.perform(post("/api/v1/usuarios").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{}"))
+            .andExpect(status().isForbidden());
+        verify(usuarioService, never()).cadastrar(any(), any(), any());
+    }
+
+    @Test void contaDesativadaInvalidaJwtJaEmitido() throws Exception {
+        String token = login("bibliotecario", "senha-laboratorio-123");
+        bibliotecarioAtivo.set(false);
+        mvc.perform(get("/api/v1/livros").header("Authorization", "Bearer " + token))
+            .andExpect(status().isUnauthorized());
+        verifyNoInteractions(estoque);
+    }
+
+    @Test void senhaAlteradaInvalidaJwtJaEmitido() throws Exception {
+        String token = login("bibliotecario", "senha-laboratorio-123");
+        versaoBibliotecario.incrementAndGet();
+        mvc.perform(get("/api/v1/livros").header("Authorization", "Bearer " + token))
+            .andExpect(status().isUnauthorized());
+        verifyNoInteractions(estoque);
     }
 
 }

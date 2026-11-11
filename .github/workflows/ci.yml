@@ -1,9 +1,8 @@
 name: CI
 on:
   push:
-    branches: [main, develop, feature/v0.2-categorias]
+    branches: [main, develop, feature/v0.2-categorias, 'feature/v0.3-pdf-security', 'feature/v0.4-rbac-auditoria-temas', 'feature/v0.5-usuarios-persistentes']
   pull_request:
-    branches: [main, develop, 'feature/v0.3-pdf-security']
 permissions:
   contents: read
 jobs:
@@ -23,6 +22,42 @@ jobs:
           cache-dependency-path: backend/pom.xml
       - name: Test backend
         run: mvn -B --no-transfer-progress clean test
+
+  integration:
+    name: PostgreSQL 16 - Flyway e integracao
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: livrostock
+          POSTGRES_USER: livrostock
+          POSTGRES_PASSWORD: livrostock-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U livrostock -d livrostock"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      LIVROSTOCK_INTEGRATION_DB: 'true'
+      DB_URL: jdbc:postgresql://127.0.0.1:5432/livrostock
+      DB_USER: livrostock
+      DB_PASSWORD: livrostock-ci-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - name: Testar migration V4, JWT e auditoria com PostgreSQL real
+        run: mvn -B --no-transfer-progress -Dtest=UsuarioPostgresIntegrationTest test
   frontend:
     name: React - TypeScript build
     runs-on: ubuntu-latest
