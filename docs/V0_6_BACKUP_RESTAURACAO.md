@@ -15,6 +15,23 @@ O objetivo é proteger os dados atuais do LivroStock: livros, estoque, movimenta
 
 As rotinas foram desenhadas para Windows PowerShell 5.1 e PowerShell 7.
 
+## Atenção: dois containers PostgreSQL no Windows
+
+Em alguns ambientes há um container \`backend-postgres-1\` (sem esquema) e outro \`livrostock-api-postgres-1\` (porta local 5434, usado pelo Spring Boot). Antes de copiar os dados, confira qual deles é o certo:
+
+~~~powershell
+docker ps --format "table {{.Names}}\t{{.Ports}}"
+docker exec livrostock-api-postgres-1 psql -U livrostock -d livrostock -c "\dt"
+docker exec livrostock-api-postgres-1 psql -U livrostock -d livrostock -c "SELECT count(*) FROM livros;"
+docker exec livrostock-api-postgres-1 psql -U livrostock -d livrostock -c "SELECT count(*) FROM usuarios;"
+~~~
+
+O script **agora recusa** qualquer origem que não tenha as cinco tabelas da v0.5: livros, movimentacoes, exemplares_digitais, auditoria_eventos e usuarios.
+
+Se existirem dois containers, informe \`-ContainerPostgres "livrostock-api-postgres-1"\`. Isso também vale para a restauração; o script usará esse mesmo PostgreSQL para criar o banco de teste, preservando \`livrostock\`.
+
+Um ZIP antigo gerado a partir de um esquema vazio pode ser declarado **íntegro por SHA-256** sem ser um backup útil: **não o utilize como cópia de segurança da aplicação**. O novo verificador de esquema do restore impede criar bancos de teste a partir desse tipo de dump.
+
 ## 1. Verificações antes do backup
 
 Pare o processo **Spring Boot**, mas mantenha o PostgreSQL do Docker em execução. A janela sem escritas é obrigatória: o dump SQL e a cópia dos PDFs não formam uma transação única.
@@ -35,7 +52,7 @@ Em outro terminal, na raiz do repositório:
 
 ~~~powershell
 cd C:\Projetos\livrostock-repo
-.\ops\criar-backup.ps1 -Destino "C:\Backups\LivroStock" -DiretorioPdf "C:\Projetos\livrostock-repo\backend\data\pdfs" -ConfirmoAplicacaoParada
+.\ops\criar-backup.ps1 -Destino "C:\Backups\LivroStock" -DiretorioPdf "C:\Projetos\livrostock-repo\backend\data\pdfs" -ContainerPostgres "livrostock-api-postgres-1" -ConfirmoAplicacaoParada
 ~~~
 
 Se o acervo estiver realmente vazio, somente após conferir a situação use a opção -PermitirAcervoVazio. Se houver PDFs em outra pasta, corrija -DiretorioPdf; não use acervo vazio para mascarar caminho incorreto.
@@ -60,7 +77,7 @@ O verificador recusa caminhos perigosos, entradas extras ou duplicadas, PDF alte
 ## 4. Restaurar somente em TESTE
 
 ~~~powershell
-.\ops\restaurar-em-teste.ps1 -Arquivo "C:\Backups\LivroStock\NOME_DO_ARQUIVO.zip" -Destino "C:\Restauracoes\LivroStock" -ConfirmarCriacaoBancoTeste
+.\ops\restaurar-em-teste.ps1 -Arquivo "C:\Backups\LivroStock\NOME_DO_ARQUIVO.zip" -Destino "C:\Restauracoes\LivroStock" -ContainerPostgres "livrostock-api-postgres-1" -ConfirmarCriacaoBancoTeste
 ~~~
 
 Esse script:
