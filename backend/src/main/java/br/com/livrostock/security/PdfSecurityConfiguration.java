@@ -59,6 +59,8 @@ public class PdfSecurityConfiguration {
                         "/api/v1/livros/*/exemplares-digitais").hasRole("BIBLIOTECARIO")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/livros/*").hasRole("BIBLIOTECARIO")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/livros/*").hasRole("BIBLIOTECARIO")
+                // O catálogo global de PDFs exige JWT; metadados nunca são públicos.
+                .requestMatchers(HttpMethod.GET, "/api/v1/acervo-digital").hasAnyRole("BIBLIOTECARIO", "LEITOR")
                 // Consulta do catálogo, movimentações e documentos para ambos os perfis.
                 .requestMatchers(HttpMethod.GET, "/api/v1/auditoria", "/api/v1/usuarios").hasRole("BIBLIOTECARIO")
                 .requestMatchers(HttpMethod.POST, "/api/v1/usuarios").hasRole("BIBLIOTECARIO")
