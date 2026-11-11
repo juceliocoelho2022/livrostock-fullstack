@@ -74,6 +74,7 @@ public class PdfSecurityConfiguration {
                 .requestMatchers(HttpMethod.PUT, "/api/v1/livros/*").hasRole("BIBLIOTECARIO")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/livros/*").hasRole("BIBLIOTECARIO")
                 // Consulta do catálogo, movimentações e documentos para ambos os perfis.
+                .requestMatchers(HttpMethod.GET, "/api/v1/auditoria").hasRole("BIBLIOTECARIO")
                 .requestMatchers(HttpMethod.GET, "/api/v1/livros", "/api/v1/livros/**")
                     .hasAnyRole("BIBLIOTECARIO", "LEITOR")
                 .anyRequest().denyAll())
