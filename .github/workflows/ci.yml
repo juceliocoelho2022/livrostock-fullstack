@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [main, develop, feature/v0.2-categorias, 'feature/v0.3-pdf-security', 'feature/v0.4-rbac-auditoria-temas', 'feature/v0.5-usuarios-persistentes']
+    branches: [main, develop, feature/v0.2-categorias, 'feature/v0.3-pdf-security', 'feature/v0.4-rbac-auditoria-temas', 'feature/v0.5-usuarios-persistentes', 'feature/v0.6-backup-restore-seguro']
   pull_request:
 permissions:
   contents: read
@@ -75,3 +75,15 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Build frontend
         run: npm run build
+
+  backup:
+    name: PowerShell - backup ZIP e integridade
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Testar no Windows PowerShell 5.1
+        shell: powershell
+        run: .\ops\testar-verificador.ps1
+      - name: Testar no PowerShell 7
+        shell: pwsh
+        run: ./ops/testar-verificador.ps1
