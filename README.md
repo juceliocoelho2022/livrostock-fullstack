@@ -200,6 +200,16 @@ Verifique o ZIP gerado com `ops/verificar-backup.ps1`. O restore de teste utiliz
 
 Consulte [manual de backup v0.6](docs/V0_6_BACKUP_RESTAURACAO.md) e [integridade v0.9](docs/V0_9_INTEGRIDADE_PDFS.md).
 
+### Homologação automatizada da v1.0 no Windows
+
+Com o backend iniciado no perfil `secure` na porta `8081`, rode **na raiz do projeto**, em outro PowerShell:
+
+```powershell
+.\ops\homologar-v1.0.ps1
+```
+
+O script pergunta a senha da conta `bibliotecario` sem exibi-la e verifica `health`, login JWT, integridade de todas as páginas do acervo, métricas Micrometer e exportação Prometheus. **É somente leitura**: não altera PDFs ou registros PostgreSQL. O sucesso real deve ser validado localmente, nunca inferido de um CI remoto.
+
 ## Qualidade e CI/CD
 
 ```powershell
