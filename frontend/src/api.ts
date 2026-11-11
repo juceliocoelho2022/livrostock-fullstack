@@ -3,6 +3,7 @@ export type LivroPayload = Pick<Livro,'titulo'|'autor'|'isbn'|'categoria'|'preco
 export type Movimento = {id:number;livroId:number;tipo:'ENTRADA'|'SAIDA';quantidade:number;saldoApos:number;observacao:string|null;criadoEm:string};
 export type ExemplarDigital = {id:number;livroId:number;nomeOriginal:string;tipoMime:string;tamanhoBytes:number;sha256:string;criadoEm:string};
 export type AcervoDigitalItem = {livroId:number;titulo:string;autor:string;categoria:string;exemplarId:number;nomeOriginal:string;tipoMime:string;tamanhoBytes:number;sha256:string;criadoEm:string};
+export type IntegridadePdf = {livroId:number;exemplarId:number;titulo:string;nomeOriginal:string;tamanhoEsperadoBytes:number;estado:'OK'|'AUSENTE'|'DIVERGENTE'|'ERRO_LEITURA'};
 export type PerfilUsuario='BIBLIOTECARIO'|'LEITOR';
 export type UsuarioResumo={id:number;nomeUsuario:string;perfil:PerfilUsuario;ativo:boolean;criadoEm:string;atualizadoEm:string};
 export type AuditoriaEvento={id:number;usuario:string;acao:string;metodo:string;rota:string;httpStatus:number;criadoEm:string};
@@ -46,6 +47,8 @@ export const api={
     if(categoria.trim())query.set('categoria',categoria.trim());
     return request<Page<AcervoDigitalItem>>('/api/v1/acervo-digital?'+query.toString());
   },
+  integridadeDigital:(page=0,size=10)=>request<Page<IntegridadePdf>>(
+    `/api/v1/acervo-digital/integridade?page=${page}&size=${size}`),
   enviarExemplar:async(livroId:number,arquivo:File):Promise<ExemplarDigital>=>{
     const body=new FormData();
     body.append('arquivo',arquivo);
