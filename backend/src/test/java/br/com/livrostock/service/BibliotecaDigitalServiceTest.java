@@ -27,12 +27,14 @@ class BibliotecaDigitalServiceTest {
     private LivroRepository livros;
     private ExemplarDigitalRepository exemplares;
     private BibliotecaDigitalService service;
+    private AuditoriaService auditoria;
 
     @BeforeEach
     void preparar() {
         livros = mock(LivroRepository.class);
         exemplares = mock(ExemplarDigitalRepository.class);
-        service = new BibliotecaDigitalService(livros, exemplares, tempDir.toString());
+        auditoria = mock(AuditoriaService.class);
+        service = new BibliotecaDigitalService(livros, exemplares, auditoria, tempDir.toString());
     }
 
     private Livro livroAtivo() {
