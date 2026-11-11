@@ -1,5 +1,7 @@
 package br.com.livrostock.api;
 
+import br.com.livrostock.domain.Usuario;
+import br.com.livrostock.repository.UsuarioRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.context.annotation.Profile;
@@ -27,10 +29,13 @@ import java.util.Map;
 public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtEncoder encoder;
+    private final UsuarioRepository usuarios;
 
-    public AuthController(AuthenticationManager authenticationManager, JwtEncoder encoder) {
+    public AuthController(AuthenticationManager authenticationManager, JwtEncoder encoder,
+                          UsuarioRepository usuarios) {
         this.authenticationManager = authenticationManager;
         this.encoder = encoder;
+        this.usuarios = usuarios;
     }
 
     public record LoginRequest(@NotBlank String usuario, @NotBlank String senha) { }
@@ -50,6 +55,9 @@ public class AuthController {
         } catch (AuthenticationException ex) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciais inválidas");
         }
+        Usuario conta = usuarios.findByNomeUsuario(auth.getName())
+                .filter(Usuario::isAtivo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciais inválidas"));
         Instant now = Instant.now();
         List<String> roles = auth.getAuthorities().stream().map(a -> a.getAuthority())
                 .filter(a -> a.startsWith("ROLE_"))
@@ -60,6 +68,7 @@ public class AuthController {
                 .expiresAt(now.plus(30, ChronoUnit.MINUTES))
                 .subject(auth.getName())
                 .claim("roles", roles)
+                .claim("ver", conta.getVersaoToken())
                 .build();
         String token = encoder.encode(JwtEncoderParameters.from(
                 JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
