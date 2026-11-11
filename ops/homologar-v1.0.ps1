@@ -79,7 +79,22 @@ try {
         throw 'PDF(s) com problema. Nao altere os arquivos originais.'
     }
 
-    $prometheus = Invoke-RestMethod -Uri "$BaseUrl/actuator/prometheus" -Headers $cabecalho -ErrorAction Stop
+    try {
+        $prometheus = Invoke-RestMethod -Uri "$BaseUrl/actuator/prometheus" -Headers $cabecalho -ErrorAction Stop
+    }
+    catch {
+        $codigoHttp = $null
+        if ($null -ne $_.Exception.Response) {
+            $codigoHttp = [int]$_.Exception.Response.StatusCode
+        }
+        if ($codigoHttp -eq 403) {
+            throw 'Prometheus HTTP 403 mesmo com bibliotecario autenticado. Confirme que a API na porta 8081 foi REINICIADA com a branch v1.0 (git branch --show-current) e que application.yml expõe metrics,prometheus. Nao libere metricas publicamente.'
+        }
+        if ($codigoHttp -eq 404) {
+            throw 'Prometheus HTTP 404: endpoint nao registrado. Confirme a dependencia micrometer-registry-prometheus e management.endpoints.web.exposure.include no application.yml efetivo.'
+        }
+        throw
+    }
     if (-not ([string]$prometheus -match 'livrostock_pdf_integridade_verificacoes_total')) {
         throw 'Metrica da auditoria ausente no Prometheus'
     }
