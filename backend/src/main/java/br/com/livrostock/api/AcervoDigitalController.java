@@ -17,6 +17,16 @@ import org.springframework.web.bind.annotation.*;
 public class AcervoDigitalController {
     private final AcervoDigitalService acervo;
     public AcervoDigitalController(AcervoDigitalService acervo) { this.acervo = acervo; }
+    @GetMapping("/integridade")
+    @Operation(summary = "Verificar integridade dos PDFs",
+      description = "Somente bibliotecário. Compara tamanho e SHA-256 sem modificar arquivos ou registros.")
+    public ResponseEntity<Page<IntegridadePdfResponse>> integridade(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(acervo.verificarIntegridade(page, size));
+    }
+
     @GetMapping
     @Operation(summary = "Pesquisar PDFs do acervo",
       description = "Busca por título ou autor, filtra por categoria e lista livros digitais ativos. Exige JWT no perfil secure.")
