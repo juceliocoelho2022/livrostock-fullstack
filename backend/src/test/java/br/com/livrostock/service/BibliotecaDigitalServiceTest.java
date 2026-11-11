@@ -155,4 +155,51 @@ class BibliotecaDigitalServiceTest {
                 "nao-existe.pdf", 10, "a".repeat(64));
         assertThrows(RecursoNaoEncontradoException.class, () -> service.abrirArquivo(exemplar));
     }
+
+    @Test
+    void validaIntegridadeDePdfIntactoAntesDaLeitura() throws Exception {
+        byte[] bytes = "%PDF-1.4\\nPDF intacto\\n%%EOF\\n".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+        String armazenado = "integridade-intacto.pdf";
+        Files.write(tempDir.resolve(armazenado), bytes);
+        ExemplarDigital exemplar = new ExemplarDigital(livroAtivo(), "intacto.pdf",
+                armazenado, bytes.length, hash);
+
+        assertEquals(BibliotecaDigitalService.EstadoIntegridade.OK, service.verificarIntegridade(exemplar));
+        assertTrue(service.abrirArquivo(exemplar).exists());
+    }
+
+    @Test
+    void impedeLeituraDeArquivoComHashDiferenteMesmoComTamanhoIgual() throws Exception {
+        byte[] original = "%PDF-1.4\\nAAAA\\n%%EOF".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] alterado = "%PDF-1.4\\nBBBB\\n%%EOF".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        assertEquals(original.length, alterado.length);
+        String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(original));
+        String armazenado = "integridade-alterado.pdf";
+        Files.write(tempDir.resolve(armazenado), alterado);
+        ExemplarDigital exemplar = new ExemplarDigital(livroAtivo(), "alterado.pdf",
+                armazenado, original.length, hash);
+
+        assertEquals(BibliotecaDigitalService.EstadoIntegridade.DIVERGENTE, service.verificarIntegridade(exemplar));
+        IllegalStateException erro = assertThrows(IllegalStateException.class, () -> service.abrirArquivo(exemplar));
+        assertTrue(erro.getMessage().contains("Integridade"));
+    }
+
+    @Test
+    void identificaArquivoAusenteSemCriarNovoPdf() {
+        ExemplarDigital exemplar = new ExemplarDigital(livroAtivo(), "ausente.pdf",
+                "ausente.pdf", 12L, "a".repeat(64));
+        assertEquals(BibliotecaDigitalService.EstadoIntegridade.AUSENTE, service.verificarIntegridade(exemplar));
+        assertThrows(RecursoNaoEncontradoException.class, () -> service.abrirArquivo(exemplar));
+    }
+
+    @Test
+    void identificaDivergenciaDeTamanho() throws Exception {
+        byte[] bytes = "%PDF-1.4\\nABC".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        String armazenado = "integridade-tamanho.pdf";
+        Files.write(tempDir.resolve(armazenado), bytes);
+        ExemplarDigital exemplar = new ExemplarDigital(livroAtivo(), "tamanho.pdf",
+                armazenado, bytes.length + 1L, "a".repeat(64));
+        assertEquals(BibliotecaDigitalService.EstadoIntegridade.DIVERGENTE, service.verificarIntegridade(exemplar));
+    }
 }
