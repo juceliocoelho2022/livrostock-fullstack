@@ -1,6 +1,12 @@
 package br.com.livrostock.security;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import br.com.livrostock.domain.Usuario;
+import br.com.livrostock.repository.UsuarioRepository;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.security.oauth2.core.*;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -12,9 +18,7 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
@@ -31,31 +35,11 @@ import java.nio.charset.StandardCharsets;
 public class PdfSecurityConfiguration {
     static final String ISSUER = "livrostock";
     private final String jwtSecret;
-    private final String bibliotecario;
-    private final String senhaBibliotecario;
-    private final String leitor;
-    private final String senhaLeitor;
-
-    public PdfSecurityConfiguration(
-            @Value("${LIVROSTOCK_JWT_SECRET:}") String jwtSecret,
-            @Value("${LIVROSTOCK_LIBRARIAN_USER:bibliotecario}") String bibliotecario,
-            @Value("${LIVROSTOCK_LIBRARIAN_PASSWORD:}") String senhaBibliotecario,
-            @Value("${LIVROSTOCK_READER_USER:leitor}") String leitor,
-            @Value("${LIVROSTOCK_READER_PASSWORD:}") String senhaLeitor) {
+    public PdfSecurityConfiguration(@Value("${LIVROSTOCK_JWT_SECRET:}") String jwtSecret) {
         if (jwtSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalStateException("Defina LIVROSTOCK_JWT_SECRET com pelo menos 32 bytes");
         }
-        if (senhaBibliotecario.length() < 12 || senhaLeitor.length() < 12) {
-            throw new IllegalStateException("Defina senhas de 12 ou mais caracteres para bibliotecário e leitor");
-        }
-        if (bibliotecario.isBlank() || leitor.isBlank() || bibliotecario.equals(leitor)) {
-            throw new IllegalStateException("Os usuários de bibliotecário e leitor devem ser distintos");
-        }
         this.jwtSecret = jwtSecret;
-        this.bibliotecario = bibliotecario;
-        this.senhaBibliotecario = senhaBibliotecario;
-        this.leitor = leitor;
-        this.senhaLeitor = senhaLeitor;
     }
 
     @Bean
@@ -74,7 +58,11 @@ public class PdfSecurityConfiguration {
                 .requestMatchers(HttpMethod.PUT, "/api/v1/livros/*").hasRole("BIBLIOTECARIO")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/livros/*").hasRole("BIBLIOTECARIO")
                 // Consulta do catálogo, movimentações e documentos para ambos os perfis.
-                .requestMatchers(HttpMethod.GET, "/api/v1/auditoria").hasRole("BIBLIOTECARIO")
+                .requestMatchers(HttpMethod.GET, "/api/v1/auditoria", "/api/v1/usuarios").hasRole("BIBLIOTECARIO")
+                .requestMatchers(HttpMethod.POST, "/api/v1/usuarios").hasRole("BIBLIOTECARIO")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/usuarios/*/perfil",
+                        "/api/v1/usuarios/*/senha").hasRole("BIBLIOTECARIO")
+                .requestMatchers(HttpMethod.PATCH, "/api/v1/usuarios/*/status").hasRole("BIBLIOTECARIO")
                 .requestMatchers(HttpMethod.GET, "/api/v1/livros", "/api/v1/livros/**")
                     .hasAnyRole("BIBLIOTECARIO", "LEITOR")
                 .anyRequest().denyAll())
@@ -85,16 +73,7 @@ public class PdfSecurityConfiguration {
     @Bean PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
 
     @Bean
-    UserDetailsService users(PasswordEncoder encoder) {
-        UserDetails bibliotecarioDetails = User.withUsername(bibliotecario)
-                .password(encoder.encode(senhaBibliotecario)).roles("BIBLIOTECARIO").build();
-        UserDetails leitorDetails = User.withUsername(leitor)
-                .password(encoder.encode(senhaLeitor)).roles("LEITOR").build();
-        return new InMemoryUserDetailsManager(bibliotecarioDetails, leitorDetails);
-    }
-
-    @Bean
-    AuthenticationManager authenticationManager(UserDetailsService users, PasswordEncoder passwordEncoder) {
+    AuthenticationManager authenticationManager(org.springframework.security.core.userdetails.UserDetailsService users, PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(users);
         provider.setPasswordEncoder(passwordEncoder);
         return new ProviderManager(provider);
@@ -110,10 +89,28 @@ public class PdfSecurityConfiguration {
     }
 
     @Bean
-    JwtDecoder jwtDecoder() {
+    JwtDecoder jwtDecoder(UsuarioRepository usuarios) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(secretKey())
                 .macAlgorithm(MacAlgorithm.HS256).build();
-        decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(ISSUER));
+        OAuth2TokenValidator<Jwt> contaAtiva = jwt -> {
+            try {
+                Optional<Usuario> registro = usuarios.findByNomeUsuario(jwt.getSubject());
+                Number versao = jwt.getClaim("ver");
+                List<String> roles = jwt.getClaimAsStringList("roles");
+                if (registro.isPresent() && registro.get().isAtivo()
+                        && versao != null && versao.intValue() == registro.get().getVersaoToken()
+                        && roles != null && roles.size() == 1
+                        && roles.contains(registro.get().getPerfil().name())) {
+                    return OAuth2TokenValidatorResult.success();
+                }
+            } catch (RuntimeException ignored) {
+                // Se não conseguir consultar o banco, nega a autenticação.
+            }
+            return OAuth2TokenValidatorResult.failure(
+                    new OAuth2Error("invalid_token", "Conta desativada, alterada ou inexistente", null));
+        };
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                JwtValidators.createDefaultWithIssuer(ISSUER), contaAtiva));
         return decoder;
     }
 
