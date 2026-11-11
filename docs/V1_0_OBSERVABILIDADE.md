@@ -36,6 +36,27 @@ O script solicita a senha de `bibliotecario` apenas no console e não publica to
 5. Confira se o perfil **LEITOR** consegue ler PDFs, mas não vê o painel nem consegue consultar o endpoint administrativo.
 6. Opcionalmente, com um token JWT válido em memória local, verifique `GET /actuator/prometheus` e `GET /actuator/metrics`. Não imprima tokens em logs ou tickets.
 
+## Diagnóstico do HTTP 403 no Prometheus (Windows)
+
+A autenticação administrativa na rota `/api/v1/acervo-digital/integridade` pode funcionar em uma instância **v0.9**, mesmo que o endpoint Prometheus da **v1.0** responda `403`. Isso **não comprova** que a v1.0 está em execução. Verifique versão local, processo e exposição de endpoints antes de alterar regras de segurança.
+
+Na raiz do repositório:
+
+```powershell
+git branch --show-current
+git log -1 --oneline
+git status --short
+Select-String -Path backend/src/main/resources/application.yml -Pattern 'include:'
+Get-NetTCPConnection -LocalPort 8081 -State Listen -ErrorAction SilentlyContinue |
+  Select-Object LocalAddress,LocalPort,OwningProcess
+```
+
+A versão v1.0 contém `management.endpoints.web.exposure.include: health,info,metrics,prometheus`. Se a configuração local for diferente, preserve seu `application.yml` e configure a exposição necessária via `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE` no terminal da API. Verifique a dependência `micrometer-registry-prometheus` no `backend/pom.xml`.
+
+Pare **somente** a aplicação Java com `Ctrl+C` no terminal original; não pare nem recrie o contêiner PostgreSQL. Reinicie o backend a partir da branch v1.0 atualizada, no **mesmo terminal que contém DB_URL, DB_USER, DB_PASSWORD, PDF_STORAGE_DIR, SPRING_PROFILES_ACTIVE=secure e LIVROSTOCK_JWT_SECRET**. Em outro PowerShell execute `.\ops\homologar-v1.0.ps1`.
+
+Se o `403` persistir após confirmar branch, processo e configurações, investigue a cadeia de filtros Spring Security no processo em execução; **não** substitua `hasRole("BIBLIOTECARIO")` por `permitAll()` e **não** exponha métricas administrativas sem autenticação.
+
 ## Limites
 - O painel mostra apenas a página conferida, não afirma ter auditado todo o acervo se houver múltiplas páginas.
 - Hash SHA-256 não é antivírus e não protege a janela entre verificação e entrega.
