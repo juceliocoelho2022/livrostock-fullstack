@@ -1,390 +1,250 @@
-# 📚 LivroStock — Gestão de Acervo e Estoque
+# 📚 LivroStock | Plataforma Full Stack de Gestão de Acervo
+
+<p align="center">
+  <strong>API REST segura, catálogo de livros, estoque e biblioteca digital com verificação de integridade.</strong>
+</p>
 
 <p align="center">
   <img alt="Java 21" src="https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white">
-  <img alt="Spring Boot 3.5.6" src="https://img.shields.io/badge/Spring%20Boot-3.5.6-6DB33F?logo=springboot&logoColor=white">
+  <img alt="Spring Boot 3.5.6" src="https://img.shields.io/badge/Spring_Boot-3.5.6-6DB33F?logo=springboot&logoColor=white">
   <img alt="React 18" src="https://img.shields.io/badge/React-18-149ECA?logo=react&logoColor=white">
-  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white">
+  <img alt="TypeScript 5" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white">
   <img alt="PostgreSQL 16" src="https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white">
-  <img alt="Docker" src="https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white">
-  <img alt="License MIT" src="https://img.shields.io/badge/License-MIT-blue">
+  <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-2088FF?logo=githubactions&logoColor=white">
 </p>
 
-**LivroStock** é um sistema full stack de controle de acervo e estoque de livros, desenvolvido como projeto de portfólio. Integra uma **API REST em Java 21 e Spring Boot**, uma **SPA em React e TypeScript** e um banco **PostgreSQL**, com persistência via JPA/Hibernate e migrações versionadas com Flyway.
+> **Status:** v0.9 homologada localmente em Windows (API, JWT e 9 PDFs digitais com SHA-256 `OK`). A **v1.0 está em desenvolvimento na branch `feature/v1.0-observabilidade-painel`**; não é um release de produção. O `main` mantém a base original e as versões seguintes estão em PRs encadeadas.
 
-> **Estado do projeto:** main mantém a base v0.1; as evoluções v0.2–v0.6 estão em branches e PRs de revisão. Segurança JWT, perfis e auditoria existem nas branches evolutivas; **ainda não há homologação de produção**, configuração segura de deploy nem gestão completa de segredos.
+## Visão geral
 
-## ✨ Funcionalidades da v0.1
+O **LivroStock** é um projeto de engenharia de software para gestão de acervos físicos e digitais. O backend em **Java 21 e Spring Boot 3.5.6** expõe uma API REST; a interface em **React 18, TypeScript e Vite** oferece operações de catálogo, estoque, autenticação e leitura de PDFs. **PostgreSQL 16** armazena os metadados, enquanto os PDFs ficam em um diretório próprio persistente.
 
-- Cadastro, consulta, edição e desativação lógica de livros
-- ISBN, autor, categoria, preço e estoque mínimo
-- Busca, paginação e visualização do catálogo
-- Entrada e saída de estoque com histórico
-- Validação de quantidade e impedimento de saldo negativo
-- Indicadores de títulos, unidades, valor do acervo e estoque baixo
-- Dashboard responsivo em React
-- Documentação interativa Swagger / OpenAPI
-- Versionamento do schema via Flyway
-- Testes Java com JUnit e build do frontend em TypeScript
+O projeto demonstra construção incremental, testes unitários e de integração, controle de acesso por perfil, versionamento SQL com **Flyway**, **backup/restauração verificável** e métricas operacionais com **Spring Boot Actuator e Micrometer**.
 
-### Interface
+### Funcionalidades
 
-O painel reúne **Visão geral**, **Catálogo de livros**, **Movimentações** e **Estoque baixo**. O status de conexão da API aparece no cabeçalho. Capturas de tela poderão ser incluídas em `docs/images/` após serem adicionadas ao repositório.
+| Área | Recursos | Estado |
+| --- | --- | --- |
+| Catálogo | Cadastro, consulta, edição, desativação lógica, busca e paginação | Implementado |
+| Estoque | Entradas, saídas, histórico, bloqueio de saldo negativo e alertas | Implementado |
+| Segurança | JWT (30 min), senhas BCrypt, perfis BIBLIOTECARIO/LEITOR e invalidação de tokens quando a conta muda | Implementado no perfil `secure` |
+| Biblioteca digital | Upload de PDF, validação de assinatura e limite de 20 MiB, leitura e download autorizados | Implementado |
+| Acervo digital | Pesquisa por título/autor, categoria e paginação sem consultas N+1 | v0.8 homologada |
+| Integridade | SHA-256 e tamanho verificados na abertura; auditoria paginada para bibliotecários | v0.9 homologada |
+| Backup | ZIP com dump PostgreSQL, PDFs e manifesto SHA-256; verificação e restauração em banco isolado | v0.6 homologada |
+| Observabilidade | Actuator, Prometheus/Micrometer, contador de auditorias e painel administrativo React | **v1.0 em desenvolvimento** |
 
-## 🧱 Arquitetura
+### Arquitetura
 
 ```mermaid
 flowchart LR
-    U[Usuário / navegador] --> R[React + TypeScript + Vite :5173]
-    R -->|Proxy /api e /actuator| A[Spring Boot REST :8081]
-    A --> J[JPA / Hibernate]
-    A --> F[Flyway]
-    J --> P[(PostgreSQL 16)]
-    F --> P
+    U[Usuário] --> F[React + TypeScript / Vite]
+    F -->|REST + JWT| API[Java 21 / Spring Boot]
+    API --> S[Spring Security / RBAC]
+    API --> J[JPA / Hibernate / Flyway]
+    J --> DB[(PostgreSQL 16)]
+    API --> PDF[(Diretório privado de PDFs)]
+    API --> M[Actuator / Micrometer]
+    M --> P[Prometheus - formato de exportação]
 ```
 
-| Camada | Tecnologias | Responsabilidade |
-| --- | --- | --- |
-| Frontend | React 18, TypeScript 5, Vite 6, Lucide | Interface, formulários, consumo da API |
-| Backend | Java 21, Spring Boot 3.5.6, Spring Web, Bean Validation | Regras de negócio, endpoints REST |
-| Persistência | Spring Data JPA, Hibernate, PostgreSQL 16 | Entidades, consultas e transações |
-| Migrações | Flyway | Evolução controlada do banco |
-| Documentação | springdoc / Swagger UI | Contrato e exploração da API |
-| Qualidade | Maven, JUnit 5, GitHub Actions | Compilação, testes e integração contínua |
+**Decisões de engenharia:** os arquivos binários não são gravados no PostgreSQL; o banco mantém metadados, tamanho e hash. O JWT fica em memória na SPA e não é enviado em URLs. A auditoria dos PDFs é sob demanda e paginada, sem alterar arquivos. No perfil `secure`, leitura e administração seguem permissões distintas.
 
-### Estrutura do repositório
+## Stack
 
-```text
-livrostock-fullstack/
-├── backend/
-│   ├── src/main/java/             # API e domínio
-│   ├── src/main/resources/        # application.yml e Flyway
-│   ├── src/test/                  # testes Java
-│   ├── docker-compose.yml         # Compose de exemplo
-│   └── pom.xml
-├── frontend/
-│   ├── src/                       # componentes, estilos e integração
-│   ├── .env.example
-│   ├── vite.config.ts
-│   └── package.json
-├── docs/
-│   ├── API.md
-│   ├── ARQUITETURA.md
-│   └── ROADMAP.md
-├── .github/workflows/ci.yml
-└── README.md
-```
+| Camada | Tecnologias |
+| --- | --- |
+| Backend | Java 21, Spring Boot 3.5.6, Spring Web, Spring Security, OAuth2 Resource Server |
+| Persistência | Spring Data JPA, Hibernate, PostgreSQL 16, Flyway |
+| Frontend | React 18, TypeScript 5, Vite 6, Lucide |
+| Autenticação | JWT HS256, BCrypt, RBAC |
+| Qualidade | JUnit 5, Mockito, MockMvc, Maven, GitHub Actions |
+| Operação | Docker Compose, PowerShell, Spring Boot Actuator, Micrometer, Prometheus registry |
+| API Docs | springdoc OpenAPI / Swagger UI |
 
-## 🚀 Executando no Windows (PowerShell)
+## Executar localmente (Windows / PowerShell)
 
-### Pré-requisitos
+**Pré-requisitos:** JDK 21, Maven 3.9+, Node.js 20+, npm, Docker Desktop e PostgreSQL 16.
 
-- JDK **21**
-- Maven **3.9+**
-- Node.js **20+** e npm
-- PostgreSQL **16+**, local ou em Docker
-- Docker Desktop, caso utilize PostgreSQL em contêiner
-
-### 1. Clonar o projeto
+> Para testar a v1.0, use a branch correspondente. Não é necessário baixar novamente os PDFs nem recriar o banco já funcional.
 
 ```powershell
 git clone https://github.com/juceliocoelho2022/livrostock-fullstack.git
 cd livrostock-fullstack
+git fetch origin
+git switch --track origin/feature/v1.0-observabilidade-painel
 ```
 
-### 2. Preparar o banco
+Se a branch já existir localmente, use `git switch feature/v1.0-observabilidade-painel` e `git pull --ff-only`. **Preserve modificações locais no `application.yml`; não utilize `git reset --hard`.**
 
-A aplicação utiliza um banco chamado `livrostock`, normalmente com usuário `livrostock`. **Não use senhas reais no Git.** Configure o usuário e a senha no PostgreSQL antes de executar o backend.
+### 1. PostgreSQL
 
-**Atenção aos ambientes com múltiplos projetos Docker:** pode existir outro PostgreSQL instalado no Windows ou outro contêiner usando a porta `5432`. Na configuração local validada durante o desenvolvimento, o PostgreSQL Docker foi publicado em **`127.0.0.1:5434`**, mantendo a porta `5432` dentro do contêiner.
+O ambiente Windows homologado usa o contêiner `livrostock-api-postgres-1` e publica a porta interna `5432` em **`127.0.0.1:5434`**:
 
-Para uma **nova instalação** com o Compose do próprio repositório, revise antes `backend/docker-compose.yml`: ele atualmente publica `5432:5432` e contém credenciais de exemplo. Ajuste as credenciais e a porta de publicação conforme seu ambiente, sem sobrescrever volumes de uma instalação existente.
-
-Exemplo de publicação local alternativa no Compose:
-
-```yaml
-ports:
-  - "127.0.0.1:5434:5432"
+```powershell
+docker ps --filter "name=livrostock"
+docker port livrostock-api-postgres-1 5432/tcp
 ```
 
-> Se já existe um banco funcional, **reutilize-o**. Não recrie contêineres/volumes desnecessariamente e nunca execute `docker compose down -v` sobre dados que deseja conservar.
+O `backend/docker-compose.yml` versionado é apenas um **exemplo para novas instalações** e utiliza porta/credenciais de desenvolvimento. Não o aplique sobre volumes existentes sem revisar a configuração. **Nunca use `docker compose down -v` no acervo real.**
 
-### 3. Iniciar o backend
+### 2. Backend
 
-Abra um PowerShell na pasta do repositório:
+Em um **único terminal PowerShell**, configure as variáveis abaixo. Informe a senha real do PostgreSQL (não a senha de login do bibliotecário). Defina uma chave JWT de pelo menos 32 bytes; para desenvolvimento local pode ser gerada aleatoriamente, mas em operação persistente guarde-a em gerenciador seguro de segredos.
 
 ```powershell
 cd backend
 
+$env:SPRING_PROFILES_ACTIVE = "secure"
+$env:PORT = "8081"
 $env:DB_URL = "jdbc:postgresql://127.0.0.1:5434/livrostock"
 $env:DB_USER = "livrostock"
+$env:PDF_STORAGE_DIR = (Join-Path (Get-Location) "data/pdfs")
+
 $senha = Read-Host "Senha do PostgreSQL" -AsSecureString
 $env:DB_PASSWORD = [System.Net.NetworkCredential]::new("", $senha).Password
+$env:SPRING_DATASOURCE_URL = $env:DB_URL
+$env:SPRING_DATASOURCE_USERNAME = $env:DB_USER
+$env:SPRING_DATASOURCE_PASSWORD = $env:DB_PASSWORD
+Remove-Variable senha
+
+# Apenas para desenvolvimento: esta chave muda a cada execução.
+$bytes = New-Object byte[] 48
+[System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+$env:LIVROSTOCK_JWT_SECRET = [Convert]::ToBase64String($bytes)
+Remove-Variable bytes
 
 mvn clean test
 mvn spring-boot:run
 ```
 
-Se seu PostgreSQL estiver publicado em outra porta, altere apenas `DB_URL` (por exemplo, para `localhost:5432`).
+O comando de inicialização **precisa ser executado no mesmo terminal** que contém as variáveis. Observe no log `HikariPool-1 - Start completed`, validação das **5 migrations Flyway** e `Started LivroStockApplication`. O perfil `default` não habilita o conjunto completo de segurança: **não o exponha publicamente**.
 
-A API é iniciada em **http://localhost:8081** por padrão; a porta pode ser alterada pela variável `PORT`.
+### 3. Frontend
 
-### 4. Iniciar o frontend
-
-Mantenha o backend em execução. Abra **outro terminal** na raiz do projeto:
+Em outro terminal:
 
 ```powershell
 cd frontend
 npm ci
-Copy-Item .env.example .env
 npm run dev
 ```
 
-Acesse **http://localhost:5173**.
+Abra **http://localhost:5173**. O Vite encaminha `/api` e `/actuator` para `http://localhost:8081`. Faça login com uma conta `bibliotecario` ou `leitor` existente no PostgreSQL (não com o usuário da máquina Windows).
 
-O Vite encaminha requisições iniciadas em `/api` e `/actuator` para `http://localhost:8081`. Para usar outro backend, ajuste `API_PROXY_TARGET` em `frontend/.env` e reinicie o Vite.
-
-> `npm ci` requer o arquivo `package-lock.json` no repositório. Caso ele esteja ausente na sua cópia, utilize `npm install` e versione o lockfile.
-
-### 5. Verificar a integração
-
-No PowerShell:
+### 4. Verificação rápida
 
 ```powershell
 Invoke-RestMethod http://localhost:8081/actuator/health
-Invoke-RestMethod http://localhost:8081/api/v1/livros
+Invoke-RestMethod http://localhost:8081/api/v1/auth/mode
 ```
 
-O primeiro endpoint deve retornar `status: UP`; o segundo deve retornar uma resposta paginada com `content`, `totalElements` e outros metadados.
+Resultado esperado: `UP` e `enabled=True, strategy=jwt`.
 
-Acesse a documentação: **http://localhost:8081/swagger-ui.html**.
+## API e permissões
 
-## 🔌 Principais endpoints
-
-| Método | Rota | Operação |
+| Método | Endpoint | Permissão em `secure` |
 | --- | --- | --- |
-| `POST` | `/api/v1/livros` | Cadastrar livro |
-| `GET` | `/api/v1/livros` | Listar e pesquisar livros |
-| `GET` | `/api/v1/livros/{id}` | Consultar livro por ID |
-| `PUT` | `/api/v1/livros/{id}` | Atualizar dados |
-| `DELETE` | `/api/v1/livros/{id}` | Desativar livro |
-| `POST` | `/api/v1/livros/{id}/movimentacoes` | Registrar entrada ou saída |
-| `GET` | `/api/v1/livros/{id}/movimentacoes` | Consultar histórico |
-| `GET` | `/api/v1/livros/estoque-baixo` | Identificar necessidade de reposição |
-| `GET` | `/actuator/health` | Verificar disponibilidade |
+| `POST` | `/api/v1/auth/login` | Público (credenciais válidas) |
+| `GET` | `/api/v1/auth/mode` | Público |
+| `GET` | `/api/v1/livros` | BIBLIOTECARIO / LEITOR |
+| `POST, PUT, DELETE` | `/api/v1/livros` e `/api/v1/livros/{id}` | BIBLIOTECARIO |
+| `POST` | `/api/v1/livros/{id}/movimentacoes` | BIBLIOTECARIO |
+| `GET` | `/api/v1/acervo-digital?busca=Spring&page=0&size=10` | BIBLIOTECARIO / LEITOR |
+| `GET` | `/api/v1/acervo-digital/integridade?page=0&size=10` | BIBLIOTECARIO |
+| `GET` | `/api/v1/livros/{id}/exemplares-digitais/{exemplarId}/arquivo` | BIBLIOTECARIO / LEITOR |
+| `POST` | `/api/v1/livros/{id}/exemplares-digitais` | BIBLIOTECARIO |
+| `GET` | `/api/v1/usuarios`, `/api/v1/auditoria` | BIBLIOTECARIO |
+| `GET` | `/actuator/health`, `/actuator/info` | Público |
+| `GET` | `/actuator/metrics`, `/actuator/prometheus` | **BIBLIOTECARIO** (v1.0) |
 
-### Criar um livro
+O acesso a métricas e à auditoria da integridade exige token Bearer. No `secure`, solicitações sem token devem retornar `401` e o perfil LEITOR deve receber `403` nas rotas administrativas.
 
-`POST /api/v1/livros`
+### Integridade dos PDFs
 
-```json
-{
-  "titulo": "Clean Code",
-  "autor": "Robert C. Martin",
-  "isbn": "9780132350884",
-  "categoria": "Tecnologia",
-  "preco": 99.90,
-  "estoqueMinimo": 5
-}
-```
+A v0.9 calcula o hash novamente ao abrir um arquivo e bloqueia sua entrega quando o conteúdo ou tamanho diferem do registro original. A auditoria administrativa retorna:
 
-### Registrar entrada de 20 unidades
+- `OK`: tamanho e hash SHA-256 conferem;
+- `AUSENTE`: arquivo não localizado;
+- `DIVERGENTE`: tamanho ou SHA-256 incompatível;
+- `ERRO_LEITURA`: erro de acesso ou leitura do arquivo.
 
-`POST /api/v1/livros/{id}/movimentacoes`
+**Homologação real em 11/11/2026:** 9 documentos digitais verificados, **9 `OK`, 0 problemas**. O diretório local de backup continha 10 PDFs; a auditoria lista apenas exemplares associados a livros exclusivamente digitais e ativos. O décimo arquivo pode estar associado a um livro de estoque ou fora desse filtro — não foi identificado como erro.
 
-```json
-{
-  "tipo": "ENTRADA",
-  "quantidade": 20,
-  "observacao": "Reposição inicial do estoque"
-}
-```
+### Observabilidade v1.0
 
-### Registrar saída de 3 unidades
+A v1.0 adiciona a exportação **Prometheus** para métricas do Micrometer e o contador `livrostock_pdf_integridade_verificacoes_total{estado="OK|AUSENTE|DIVERGENTE|ERRO_LEITURA"}`. O painel de integridade no React aparece somente para **BIBLIOTECARIO** autenticado e mostra o resultado da página solicitada, sem ler todo o acervo automaticamente.
 
-```json
-{
-  "tipo": "SAIDA",
-  "quantidade": 3,
-  "observacao": "Venda de exemplares"
-}
-```
-
-**Resultado esperado:** após a entrada e a saída acima, um livro inicialmente sem estoque terá saldo final de **17 unidades**.
-
-## 📖 Biblioteca digital — v0.2 (backend inicial, testes pendentes)
-
-Um livro pode ter um ou mais **exemplares em PDF** associados ao seu cadastro, sem alterar a quantidade de exemplares físicos. A API recebe os documentos, mantém os metadados no PostgreSQL e grava o conteúdo em um diretório persistente, configurado por `PDF_STORAGE_DIR`.
-
-**Endpoints adicionados à branch de desenvolvimento:**
-
-| Método | Rota | Objetivo |
-| --- | --- | --- |
-| `POST` | `/api/v1/livros/{id}/exemplares-digitais` | Upload `multipart/form-data` com campo `arquivo` |
-| `GET` | `/api/v1/livros/{id}/exemplares-digitais` | Listar PDFs relacionados ao livro |
-| `GET` | `/api/v1/livros/{id}/exemplares-digitais/{exemplarId}/arquivo` | Abrir PDF no navegador |
-| `GET` | `/api/v1/livros/{id}/exemplares-digitais/{exemplarId}/arquivo?download=true` | Solicitar download |
-
-Validações iniciais: extensão `.pdf`, assinatura `%PDF-`, arquivo não vazio, limite de **20 MiB**, nome físico aleatório (UUID) e checksum SHA-256. O conteúdo **não** é salvo no banco.
-
-> **Segurança:** os endpoints ainda não têm autenticação nem permissão por usuário. O cabeçalho PDF não substitui verificação antimalware; não exponha esse módulo publicamente. Somente envie exemplares de domínio público, com licença ou com autorização de uso/distribuição. A tela **Biblioteca Digital** no React já permite upload, consulta e visualização em um `iframe` que utiliza o leitor PDF nativo do navegador; PDF.js dedicado permanece planejado.
-
-**Executar em desenvolvimento:** depois de atualizar sua branch, definir as variáveis de banco e `PDF_STORAGE_DIR` e aplicar as migrations, inicie o backend e acesse o Swagger. Veja um exemplo de envio em [docs/API.md](docs/API.md).
-
-**Estado real:** migration, entidade, repositório, service e controller foram adicionados à branch da v0.2. **Compilação do backend e upload real de PDF foram validados localmente. A integração React foi codificada; teste manual da interface e hardening ainda pendentes.**
-
-## 📏 Regras de negócio
-
-1. O cadastro de um livro começa com saldo de estoque igual a zero.
-2. Entradas aumentam e saídas reduzem a quantidade disponível.
-3. A API impede saídas superiores ao saldo existente.
-4. Cada movimentação preserva o tipo, a quantidade, o saldo após a operação e a data.
-5. A desativação de livros é lógica, preservando o histórico.
-6. Livros com saldo abaixo do mínimo configurado podem aparecer no alerta de reposição.
-
-O inventário completo das regras e seus critérios de aceite está em **[docs/REGRAS_DE_NEGOCIO.md](docs/REGRAS_DE_NEGOCIO.md)**, com identificadores RN-001 a RN-007 e distinção entre **implementado** e **planejado**.
-
-## 🗃️ DER — Diagrama Entidade-Relacionamento
-
-O modelo físico atual mantém o estoque separado dos documentos digitais:
-
-```mermaid
-erDiagram
-    LIVROS ||--o{ MOVIMENTACOES : registra
-    LIVROS ||--o{ EXEMPLARES_DIGITAIS : disponibiliza
-    LIVROS {
-        bigint id PK
-        varchar isbn UK
-        varchar titulo
-        varchar categoria
-        numeric preco
-        int quantidade
-        int estoque_minimo
-    }
-    MOVIMENTACOES {
-        bigint id PK
-        bigint livro_id FK
-        varchar tipo
-        int quantidade
-        int saldo_apos
-    }
-    EXEMPLARES_DIGITAIS {
-        bigint id PK
-        bigint livro_id FK
-        varchar nome_armazenado UK
-        bigint tamanho_bytes
-        varchar sha256
-    }
-```
-
-O **[DER completo, os atributos, os relacionamentos futuros e as decisões de arquitetura](docs/ARQUITETURA.md)** estão documentados separadamente.
-
-## 🏢 Funcionalidades de um sistema profissional
-
-| Funcionalidade | Prioridade | Situação |
-| --- | --- | --- |
-| Catálogo, ISBN, busca, movimentações e alertas | Alta | v0.1 funcional |
-| Upload, metadados e leitura básica de PDF | Alta | Backend inicial v0.2, testes pendentes |
-| Categorias, editoras e fornecedores normalizados | Alta | Planejado v0.2 |
-| Leitor integrado via iframe/PDF nativo | Alta | Implementado no React, teste manual pendente |
-| Leitor PDF.js dedicado | Média | Planejado |
-| Gestão de licenças e direitos de acesso ao acervo digital | Crítica | Planejado |
-| Login JWT, RBAC e auditoria de operações | Crítica | Planejado v0.3 |
-| Testcontainers e testes ponta a ponta | Alta | Planejado |
-| Movimentações com controle de concorrência | Alta | Planejado |
-| Relatórios e exportação CSV/Excel | Média | Planejado |
-| Backup de PostgreSQL + PDFs e restauração | Crítica | Planejado |
-| S3/MinIO, checksum na leitura e antivírus de upload | Alta | Planejado |
-| Observabilidade, tracing, métricas e alertas | Média | Planejado |
-| CI/CD, HTTPS, deploy e documentação operacional | Alta | Planejado v1.0 |
-
-## 🧪 Testes e qualidade
+Exemplo de consulta ao endpoint protegido depois de autenticar:
 
 ```powershell
-# API: testes e empacotamento
-cd backend
-mvn clean verify
+$headers = @{ Authorization = "Bearer <token-JWT-valido>" }
+Invoke-RestMethod "http://localhost:8081/actuator/metrics" -Headers $headers
+Invoke-WebRequest "http://localhost:8081/actuator/prometheus" -Headers $headers
+```
 
-# SPA: verificação TypeScript e build de produção
+Não copie o JWT para o README, scripts versionados, tickets ou capturas públicas. As métricas foram configuradas para uso **local autenticado**; a instalação de um servidor Prometheus, dashboard Grafana, alertas e deploy externo não fazem parte desta entrega.
+
+## Backups e restauração
+
+A operação segura exige copiar **PostgreSQL + diretório físico de PDFs**. Antes do backup consistente, pare o processo Spring Boot, mas mantenha o contêiner PostgreSQL ativo:
+
+```powershell
+cd C:\Projetos\livrostock-repo
+.\ops\criar-backup.ps1 -Destino "C:\Backups\LivroStock" -DiretorioPdf "C:\Projetos\livrostock-repo\backend\data\pdfs" -ContainerPostgres "livrostock-api-postgres-1" -ConfirmoAplicacaoParada
+```
+
+Verifique o ZIP gerado com `ops/verificar-backup.ps1`. O restore de teste utiliza `ops/restaurar-em-teste.ps1` e um **banco separado**, nunca o banco principal. Os backups incluem dados privados e **não são criptografados automaticamente**: armazene-os fora do Git, em mídia protegida.
+
+**Backup real em 11/11/2026:** ZIP íntegro com **10 PDFs**, dump PostgreSQL e manifesto SHA-256 verificado.
+
+Consulte [manual de backup v0.6](docs/V0_6_BACKUP_RESTAURACAO.md) e [integridade v0.9](docs/V0_9_INTEGRIDADE_PDFS.md).
+
+## Qualidade e CI/CD
+
+```powershell
+cd backend
+mvn clean test
 cd ../frontend
 npm ci
 npm run build
 ```
 
-Há um workflow de CI em `.github/workflows/ci.yml`, com jobs separados para Java e frontend. **Na execução da PR de 10/11/2026**, o pipeline compilou o React e executou **14 testes Java (11 de biblioteca digital e 3 do domínio Livro), sem falhas**. Consulte o resultado atualizado na aba **Actions**, pois versões posteriores podem mudar esse status.
+O workflow [GitHub Actions](.github/workflows/ci.yml) inclui cinco jobs: testes Java 21, integração Flyway/JWT/PostgreSQL 16, build TypeScript, verificação de backup PowerShell e restauração Docker isolada. Os testes de integração de banco requerem `LIVROSTOCK_INTEGRATION_DB=true` e **não devem ser executados diretamente contra o banco com PDFs reais**. O CI utiliza dados sintéticos e contêiner descartável.
 
-Os testes locais de integração realizados na v0.1 confirmaram acesso ao endpoint de saúde, leitura do catálogo e operações de estoque na interface. Testes automatizados com banco real e Testcontainers são parte do roadmap.
+## Evolução do produto
 
-## 🔒 Segurança e limitações
-
-- A v0.1 **não possui login nem controle de acesso**. Não exponha esta API publicamente.
-- As credenciais no Compose versionado são **exemplos de desenvolvimento** e deverão ser removidas antes de qualquer publicação.
-- Mantenha segredos em variáveis de ambiente; não versione `.env` nem senhas reais.
-- Para produção: implementar autenticação/autorização, gestão segura de credenciais, HTTPS, auditoria, observabilidade e políticas de backup.
-
-## 🗺️ Roadmap
-
-| Versão | Foco | Situação |
+| Versão | Entrega | Estado |
 | --- | --- | --- |
-| **v0.1** | Livros, movimentações, dashboard, Flyway e Swagger | Funcional localmente |
-| **v0.2** | Exemplares PDF, categorias, editoras e fornecedores; testes de integração | Em desenvolvimento |
-| **v0.3** | JWT para Biblioteca Digital e perfis Bibliotecário/Leitor | Implementado em branch, homologado localmente |
-| **v0.4** | Temas Light/Moderado/Dark, RBAC no catálogo e auditoria | PR #3 em revisão |
-| **v0.5** | Usuários PostgreSQL, JWT revogável, auditoria de escrita transacional | PR #4 em revisão |
-| **v0.6** | Backup PostgreSQL + PDFs, verificação SHA-256 e restore isolado | PR #5 em revisão |
-| **v0.7** | Importação privada Drive, livros digitais sem ISBN, arquivo SHA-256 e anti-duplicação | PR #6 em revisão |
-| **v1.0** | Hardening, CI validado, deploy e documentação operacional | Planejada |
+| v0.1 | API de livros, estoque, dashboard, Flyway | Base funcional |
+| v0.2–v0.4 | PDFs, JWT, controle de acesso e auditoria | Branches de evolução |
+| v0.5 | Usuários PostgreSQL, BCrypt, revogação de tokens | Implementado |
+| v0.6 | Backup e restauração verificados | Homologado localmente |
+| v0.7 | Importação privada de PDFs do Drive | Homologado localmente |
+| v0.8 | Busca paginada e filtro do acervo digital | Homologado localmente |
+| **v0.9** | Integridade SHA-256 dos PDFs | **Homologado: 9/9 OK** |
+| **v1.0** | Micrometer/Prometheus e painel de integridade | **Em desenvolvimento / PR** |
 
-Consulte [roadmap](docs/ROADMAP.md), [regras de negócio](docs/REGRAS_DE_NEGOCIO.md), [arquitetura e DER](docs/ARQUITETURA.md) e [API REST](docs/API.md).
+As evoluções são organizadas em **PRs encadeadas**; não devem ser confundidas com releases já integrados à `main`.
 
-## 🔐 Segurança opcional da Biblioteca Digital (branch v0.3)
+## Segurança, escopo e limitações
 
-Um **perfil Spring `secure`** foi adicionado na branch `feature/v0.3-pdf-security`: login JWT válido por 30 minutos, perfis **BIBLIOTECARIO** (upload e leitura) e **LEITOR** (somente leitura/download). O React reconhece esse modo e usa tokens Bearer sem colocá-los na URL.
+- Use o perfil `secure` com HTTPS, segredos gerenciados, rede restrita e políticas de backup para qualquer ambiente externo. O projeto **não está homologado para produção pública**.
+- PDF com cabeçalho válido e SHA-256 íntegro **não significa que passou por antivírus**, que possui licença de distribuição ou que seu armazenamento é imutável.
+- O projeto não publica PDFs pessoais, arquivos de backup, credenciais nem bases reais de dados no repositório.
+- Todo o uso de documentos digitais deve respeitar licenças e direitos autorais; conteúdos privados não são automaticamente redistribuíveis.
+- Itens futuros: testes de carga, limitação de requisições, armazenamento versionado, monitoramento/alertas externos, HTTPS e hardening de implantação.
 
-**O ambiente v0.2 local permanece inalterado quando o perfil seguro não está ativo.** A segurança ainda não está homologada para produção: outros endpoints permanecem públicos e faltam auditoria, rate limiting, inspeção antimalware e gestão de usuários.
+### Documentação adicional
 
-Consulte o [manual de segurança e ativação no Windows](docs/SEGURANCA.md).
+- [API REST](docs/API.md)
+- [Arquitetura e DER](docs/ARQUITETURA.md)
+- [Regras de negócio](docs/REGRAS_DE_NEGOCIO.md)
+- [Segurança](docs/SEGURANCA.md)
+- [Importação de PDFs do Drive](docs/V0_7_IMPORTACAO_DRIVE.md)
+- [Acervo paginado](docs/V0_8_ACERVO_API.md)
+- [Auditoria de integridade](docs/V0_9_INTEGRIDADE_PDFS.md)
 
-## 🎨 LivroStock v0.4 — temas e segurança global (branch experimental)
+## Licença
 
-Na branch `feature/v0.4-rbac-auditoria-temas`, o cabeçalho permite alternar entre **Light**, **Moderado** e **Dark**. A seleção é salva no navegador e permanece após atualizar a página.
-
-No perfil Spring `secure`, o login JWT passa a proteger **catálogo, movimentações e Biblioteca Digital**. O Bibliotecário pode administrar; o Leitor pode consultar. O menu **Auditoria** (visível apenas para o Bibliotecário) consulta registros de operações autenticadas bem-sucedidas, armazenados na migration Flyway V3.
-
-A sessão é encerrada ao expirar o token (30 minutos) ou quando a API devolve `401`. O comportamento sem `secure` é mantido para desenvolvimento local e não pode ser publicado.
-
-**Ainda não há gestão de usuários persistente nem auditoria forense/transacional.** Consulte [guia detalhado da v0.4](docs/V0_4_TEMAS_SEGURANCA_AUDITORIA.md). Não mescle a PR até testar a migration V3 no PostgreSQL real e homologar os temas e perfis no navegador.
-
-## 👥 LivroStock v0.5 — usuários persistidos no PostgreSQL
-
-A branch `feature/v0.5-usuarios-persistentes` adiciona a migration **Flyway V4**, login via contas armazenadas no PostgreSQL, senhas BCrypt e uma interface **Usuários** exclusiva para Bibliotecários. Alterações de senha, perfil e status de conta invalidam imediatamente tokens JWT antigos.
-
-No **primeiro início** com a nova tabela vazia, os dois perfis da v0.4 são criados usando os usuários e senhas já definidos nas variáveis de ambiente. Em reinícios seguintes, as senhas do banco não são sobrescritas.
-
-Também reforça a auditoria de cadastro/edição/desativação de livros, movimentações, contas e upload de PDFs na mesma transação. Leitura e download continuam sendo auditados após a resposta.
-
-CI com Java 21, React e integração com PostgreSQL 16 isolado. **Não mesclar antes de backup e homologação local com o banco existente.**
-
-Leia o [guia da v0.5 e checklist de homologação](docs/V0_5_USUARIOS_PERSISTENTES.md).
-
-## 💾 LivroStock v0.6 — backup e restauração em ambiente isolado
-
-A branch feature/v0.6-backup-restore-seguro fornece scripts PowerShell para copiar **banco PostgreSQL + acervo PDF** para um ZIP com manifesto SHA-256, verificar integridade e recuperar o conteúdo **somente em um novo banco** e em uma pasta de PDFs separada.
-
-Os scripts não alteram o banco principal. Para garantir consistência entre SQL e PDFs, **pare apenas o Spring Boot antes de copiar**; mantenha o PostgreSQL em execução. Nenhum backup é enviado à nuvem, e os ZIPs não são criptografados pelo script — armazene-os em mídia protegida.
-
-A CI inclui execução no PowerShell 5.1 e 7 e um teste ponta a ponta com PostgreSQL e PDFs descartáveis. A homologação com seus dados reais ainda depende de backup, verificação e teste de restauração local.
-
-**Manual com comandos:** [Backup e restauração v0.6](docs/V0_6_BACKUP_RESTAURACAO.md).
-
-## ☁️ LivroStock v0.7 — importação privada de PDFs do Google Drive
-
-Nova branch `feature/v0.7-importacao-drive-pdfs` com Flyway V5, livros exclusivamente digitais (sem inventar ISBN) e endpoint de importação protegido por JWT, reservado ao Bibliotecário. Cada PDF é validado, associado a um título e rastreado pelo identificador de origem Drive, impedindo importações duplicadas.
-
-Os PDFs do usuário e o pacote de importação são **privados e não fazem parte do GitHub**. O processo requer extração local do pacote, confirmação de backup e execução do importador PowerShell no computador que executa o LivroStock. **Não é sincronização OAuth automática do Drive.**
-
-Consulte o [guia v0.7](docs/V0_7_IMPORTACAO_DRIVE.md) para comandos, segurança e testes.
-
-## 📄 Licença
-
-Distribuído sob a licença **MIT**. Consulte [LICENSE](LICENSE).
+Licenciado sob [MIT](LICENSE). Projeto de portfólio e estudo de engenharia de software.
