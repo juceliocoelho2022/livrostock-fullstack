@@ -49,7 +49,7 @@ class ImportacaoDigitalIntegrationTest {
         return mapper.readTree(resposta).get("accessToken").asText();
     }
 
-    private org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder upload(
+    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder upload(
             String driveId) {
         byte[] pdf = "%PDF-1.4\nExemplo de teste local\n%%EOF\n".getBytes(StandardCharsets.UTF_8);
         return multipart("/api/v1/importacoes-digitais/drive")
