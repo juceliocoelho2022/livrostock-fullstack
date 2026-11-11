@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [main, develop, feature/v0.2-categorias, 'feature/v0.3-pdf-security', 'feature/v0.4-rbac-auditoria-temas', 'feature/v0.5-usuarios-persistentes', 'feature/v0.6-backup-restore-seguro']
+    branches: [main, develop, feature/v0.2-categorias, 'feature/v0.3-pdf-security', 'feature/v0.4-rbac-auditoria-temas', 'feature/v0.5-usuarios-persistentes', 'feature/v0.6-backup-restore-seguro', 'feature/v0.7-importacao-drive-pdfs']
   pull_request:
 permissions:
   contents: read
@@ -57,7 +57,7 @@ jobs:
           cache: maven
           cache-dependency-path: backend/pom.xml
       - name: Testar migration V4, JWT e auditoria com PostgreSQL real
-        run: mvn -B --no-transfer-progress -Dtest=UsuarioPostgresIntegrationTest test
+        run: mvn -B --no-transfer-progress -Dtest=UsuarioPostgresIntegrationTest,ImportacaoDigitalIntegrationTest test
   frontend:
     name: React - TypeScript build
     runs-on: ubuntu-latest
