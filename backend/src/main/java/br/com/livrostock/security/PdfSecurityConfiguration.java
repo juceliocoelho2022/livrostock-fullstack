@@ -68,12 +68,16 @@ public class PdfSecurityConfiguration {
             .authorizeHttpRequests(a -> a
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/auth/mode", "/actuator/health", "/actuator/info").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/v1/livros/*/exemplares-digitais").hasRole("BIBLIOTECARIO")
-                .requestMatchers(HttpMethod.GET,
-                        "/api/v1/livros/*/exemplares-digitais",
-                        "/api/v1/livros/*/exemplares-digitais/*/arquivo")
+                // Inventário e PDFs: somente o bibliotecário pode modificar dados.
+                .requestMatchers(HttpMethod.POST, "/api/v1/livros", "/api/v1/livros/*/movimentacoes",
+                        "/api/v1/livros/*/exemplares-digitais").hasRole("BIBLIOTECARIO")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/livros/*").hasRole("BIBLIOTECARIO")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/livros/*").hasRole("BIBLIOTECARIO")
+                // Consulta do catálogo, movimentações e documentos para ambos os perfis.
+                .requestMatchers(HttpMethod.GET, "/api/v1/auditoria").hasRole("BIBLIOTECARIO")
+                .requestMatchers(HttpMethod.GET, "/api/v1/livros", "/api/v1/livros/**")
                     .hasAnyRole("BIBLIOTECARIO", "LEITOR")
-                .anyRequest().permitAll())
+                .anyRequest().denyAll())
             .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));
         return http.build();
     }

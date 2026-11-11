@@ -2,11 +2,18 @@ export type Livro = {id:number;titulo:string;autor:string;isbn:string;categoria:
 export type LivroPayload = Pick<Livro,'titulo'|'autor'|'isbn'|'categoria'|'preco'|'estoqueMinimo'>;
 export type Movimento = {id:number;livroId:number;tipo:'ENTRADA'|'SAIDA';quantidade:number;saldoApos:number;observacao:string|null;criadoEm:string};
 export type ExemplarDigital = {id:number;livroId:number;nomeOriginal:string;tipoMime:string;tamanhoBytes:number;sha256:string;criadoEm:string};
+export type AuditoriaEvento={id:number;usuario:string;acao:string;metodo:string;rota:string;httpStatus:number;criadoEm:string};
 export type Page<T>={content:T[];totalElements:number;totalPages:number;number:number;size:number;first:boolean;last:boolean};
 const BASE=(import.meta.env.VITE_API_URL as string|undefined)?.replace(/\/$/,'')??'';
 let tokenPdf:string|null=null;
 let perfisPdf:string[]=[];
 const headersPdf=():Record<string,string>=>tokenPdf?{'Authorization':`Bearer ${tokenPdf}`}:{};
+function invalidarSessao(){
+  if(!tokenPdf)return;
+  tokenPdf=null;perfisPdf=[];
+  window.dispatchEvent(new Event('livrostock:auth-expired'));
+}
+
 export type LoginPdf={usuario:string;senha:string};
 export type TokenPdf={accessToken:string;tokenType:'Bearer';expiresIn:number;roles:string[]};
 
@@ -16,7 +23,7 @@ async function request<T>(path:string,opts:RequestInit={}):Promise<T>{
   if(!headers.has('Content-Type')) headers.set('Content-Type','application/json');
   if(tokenPdf) headers.set('Authorization',`Bearer ${tokenPdf}`);
   try {response=await fetch(BASE+path,{...opts,headers});}catch {throw new Error('Não foi possível conectar à API. Verifique se o Spring Boot está ativo na porta configurada (padrão 8081).');}
-  if(!response.ok){let error:unknown;try{error=await response.json();}catch{};const message=error && typeof error==='object'&&'erro' in error?String(error.erro):`Erro HTTP ${response.status}`;throw new Error(message);}
+  if(!response.ok){if(response.status===401)invalidarSessao();let error:unknown;try{error=await response.json();}catch{};const message=error && typeof error==='object'&&'erro' in error?String(error.erro):`Erro HTTP ${response.status}`;throw new Error(message);}
   if(response.status===204)return undefined as T;
   return response.json() as Promise<T>;
 }
@@ -37,6 +44,7 @@ export const api={
     try {response=await fetch(BASE+`/api/v1/livros/${livroId}/exemplares-digitais`,{method:'POST',body,headers:headersPdf()});}
     catch {throw new Error('Falha na conexão com a API durante o upload.');}
     if(!response.ok){
+      if(response.status===401)invalidarSessao();
       let message=`Erro HTTP ${response.status}`;
       try {const error=await response.json() as {erro?:string};if(error.erro)message=error.erro;}catch{}
       throw new Error(message);
@@ -67,8 +75,10 @@ export const api={
       response=await fetch(BASE+`/api/v1/livros/${livroId}/exemplares-digitais/${exemplarId}/arquivo`+(download?'?download=true':''),
          {headers:headersPdf(),cache:'no-store'});
     }catch {throw new Error('Não foi possível carregar o PDF.');}
+    if(response.status===401)invalidarSessao();
     if(!response.ok)throw new Error(response.status===401?'Sessão expirada ou acesso não autorizado.':response.status===403?'Você não tem permissão para este documento.':`Erro HTTP ${response.status} ao carregar PDF.`);
     return response.blob();
   },
+  auditoria:(page=0,size=20)=>request<Page<AuditoriaEvento>>(`/api/v1/auditoria?page=${page}&size=${size}`),
   health:()=>request<{status:string}>('/actuator/health')
 };

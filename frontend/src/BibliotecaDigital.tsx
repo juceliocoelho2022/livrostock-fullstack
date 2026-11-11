@@ -2,11 +2,11 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { BookOpen, Download, ExternalLink, FilePlus2, FileText, RefreshCw, UploadCloud } from 'lucide-react';
 import { api, type ExemplarDigital, type Livro } from './api';
 
-type Props = { livros: Livro[] };
+type Props = { livros: Livro[]; onLogout?:()=>void };
 const tamanho = (bytes:number) => new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1}).format(bytes/1024)+' KB';
 const data = (value:string) => new Date(value).toLocaleString('pt-BR');
 
-export default function BibliotecaDigital({livros}:Props){
+export default function BibliotecaDigital({livros,onLogout}:Props){
   const [livroId,setLivroId]=useState<number|null>(null);
   const [exemplares,setExemplares]=useState<ExemplarDigital[]>([]);
   const [arquivo,setArquivo]=useState<File|null>(null);
@@ -76,6 +76,7 @@ export default function BibliotecaDigital({livros}:Props){
     api.pdfSair();
     setAutenticado(false);setPerfis([]);setExemplares([]);setLeitura(null);setReaderUrl(null);
     setArquivo(null);setSucesso('');setErro('');
+    onLogout?.();
   }
 
   async function atualizar(){

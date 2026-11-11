@@ -328,7 +328,8 @@ Os testes locais de integração realizados na v0.1 confirmaram acesso ao endpoi
 | --- | --- | --- |
 | **v0.1** | Livros, movimentações, dashboard, Flyway e Swagger | Funcional localmente |
 | **v0.2** | Exemplares PDF, categorias, editoras e fornecedores; testes de integração | Em desenvolvimento |
-| **v0.3** | Spring Security, JWT, perfis de acesso, auditoria e observabilidade | Planejada |
+| **v0.3** | JWT para Biblioteca Digital e perfis Bibliotecário/Leitor | Implementado em branch, homologado localmente |
+| **v0.4** | Temas Light/Moderado/Dark, RBAC no catálogo e auditoria | PR #3 em revisão |
 | **v1.0** | Hardening, CI validado, deploy e documentação operacional | Planejada |
 
 Consulte [roadmap](docs/ROADMAP.md), [regras de negócio](docs/REGRAS_DE_NEGOCIO.md), [arquitetura e DER](docs/ARQUITETURA.md) e [API REST](docs/API.md).
@@ -340,6 +341,16 @@ Um **perfil Spring `secure`** foi adicionado na branch `feature/v0.3-pdf-securit
 **O ambiente v0.2 local permanece inalterado quando o perfil seguro não está ativo.** A segurança ainda não está homologada para produção: outros endpoints permanecem públicos e faltam auditoria, rate limiting, inspeção antimalware e gestão de usuários.
 
 Consulte o [manual de segurança e ativação no Windows](docs/SEGURANCA.md).
+
+## 🎨 LivroStock v0.4 — temas e segurança global (branch experimental)
+
+Na branch `feature/v0.4-rbac-auditoria-temas`, o cabeçalho permite alternar entre **Light**, **Moderado** e **Dark**. A seleção é salva no navegador e permanece após atualizar a página.
+
+No perfil Spring `secure`, o login JWT passa a proteger **catálogo, movimentações e Biblioteca Digital**. O Bibliotecário pode administrar; o Leitor pode consultar. O menu **Auditoria** (visível apenas para o Bibliotecário) consulta registros de operações autenticadas bem-sucedidas, armazenados na migration Flyway V3.
+
+A sessão é encerrada ao expirar o token (30 minutos) ou quando a API devolve `401`. O comportamento sem `secure` é mantido para desenvolvimento local e não pode ser publicado.
+
+**Ainda não há gestão de usuários persistente nem auditoria forense/transacional.** Consulte [guia detalhado da v0.4](docs/V0_4_TEMAS_SEGURANCA_AUDITORIA.md). Não mescle a PR até testar a migration V3 no PostgreSQL real e homologar os temas e perfis no navegador.
 
 ## 📄 Licença
 
