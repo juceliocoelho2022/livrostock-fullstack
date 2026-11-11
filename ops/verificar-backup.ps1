@@ -23,8 +23,10 @@ $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $Arq
 try {
     $entradas = @{}
     foreach ($entrada in $zip.Entries) {
-        $nome = $entrada.FullName
-        if ($nome -match '(^/|^[A-Za-z]:|\\|(^|/)\.\.(/|$))') {
+        # Compress-Archive no Windows pode escrever separadores de pasta com barra invertida.
+        # Normalizar antes de validar para nao rejeitar um backup legitimo.
+        $nome = $entrada.FullName.Replace('\','/')
+        if ($nome -match '(^/|^[A-Za-z]:|(^|/)\.\.(/|$))') {
             throw "Caminho inseguro dentro do ZIP: $nome"
         }
         if ($nome.EndsWith('/')) { continue }
