@@ -18,6 +18,16 @@ Siga o README do repositório. No Windows homologado:
 - Frontend Vite: `http://localhost:5173`.
 - Backup original já realizado: banco + 10 PDFs, com 9 PDFs digitais ativos íntegros na v0.9.
 
+## Verificação automatizada em PowerShell
+
+Na raiz do repositório, com backend `secure` iniciado e PostgreSQL existente preservado:
+
+```powershell
+.\ops\homologar-v1.0.ps1
+```
+
+O script solicita a senha de `bibliotecario` apenas no console e não publica tokens JWT. Confere health, segurança, paginação completa, estados SHA-256, contador Prometheus e acesso a `/actuator/metrics`. Não altera registros nem arquivos. Uma falha deve ser investigada, não corrigida modificando PDFs reais.
+
 ## Homologação manual
 1. Confirme `GET /actuator/health` = `UP` e `GET /api/v1/auth/mode` = `jwt`.
 2. Faça login como `bibliotecario` no frontend.
