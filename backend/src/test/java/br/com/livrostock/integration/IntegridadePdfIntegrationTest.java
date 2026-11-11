@@ -105,6 +105,23 @@ class IntegridadePdfIntegrationTest {
             Files.write(arquivo, original);
         }
 
+        // No modo secure, Prometheus e métricas do Actuator são administrativos.
+        mvc.perform(get("/actuator/prometheus")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/actuator/prometheus")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + leitor))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/actuator/prometheus")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "livrostock_pdf_integridade_verificacoes_total")));
+        mvc.perform(get("/actuator/metrics")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + leitor))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/actuator/metrics")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin))
+                .andExpect(status().isOk());
+
         mvc.perform(get("/api/v1/acervo-digital/integridade"))
                 .andExpect(status().isUnauthorized());
         mvc.perform(get("/api/v1/acervo-digital/integridade")
