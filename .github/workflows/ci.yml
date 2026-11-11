@@ -111,10 +111,27 @@ jobs:
           $pdfDir = Join-Path $PWD 'backend/data/pdfs'
           $backups = Join-Path $env:RUNNER_TEMP 'livrostock-ci-backups'
           $restores = Join-Path $env:RUNNER_TEMP 'livrostock-ci-restores'
-          ./ops/criar-backup.ps1 -Destino $backups -DiretorioPdf $pdfDir -ComposeFile $compose -ConfirmoAplicacaoParada
+          $postgres = (& docker compose -f $compose ps -q postgres | Out-String).Trim()
+          if (-not $postgres) { throw 'Container de CI indisponivel' }
+
+          # Reproduz o erro real: o backup de um banco vazio deve ser recusado.
+          & docker exec $postgres createdb -U livrostock livrostock_vazio_ci
+          if ($LASTEXITCODE -ne 0) { throw 'Nao foi possivel criar banco vazio de teste' }
+          $recusado = $false
+          try {
+            ./ops/criar-backup.ps1 -Destino (Join-Path $env:RUNNER_TEMP 'recusado') -DiretorioPdf $pdfDir -ComposeFile $compose -ContainerPostgres $postgres -Banco livrostock_vazio_ci -ConfirmoAplicacaoParada
+          }
+          catch {
+            if ($_.Exception.Message -like '*BACKUP RECUSADO*') { $recusado = $true }
+            else { throw }
+          }
+          if (-not $recusado) { throw 'Backup de esquema vazio nao foi recusado' }
+          Write-Host 'OK: banco vazio rejeitado antes de criar ZIP'
+
+          ./ops/criar-backup.ps1 -Destino $backups -DiretorioPdf $pdfDir -ComposeFile $compose -ContainerPostgres $postgres -ConfirmoAplicacaoParada
           $arquivos = @(Get-ChildItem -LiteralPath $backups -Filter '*.zip')
           if ($arquivos.Count -ne 1) { throw 'Esperado exatamente um ZIP de backup' }
-          ./ops/restaurar-em-teste.ps1 -Arquivo $arquivos[0].FullName -Destino $restores -ComposeFile $compose -BancoTeste 'livrostock_restore_ci_12345678' -ConfirmarCriacaoBancoTeste
+          ./ops/restaurar-em-teste.ps1 -Arquivo $arquivos[0].FullName -Destino $restores -ComposeFile $compose -ContainerPostgres $postgres -BancoTeste 'livrostock_restore_ci_12345678' -ConfirmarCriacaoBancoTeste
           $resultado = (& docker compose -f $compose exec -T postgres psql -U livrostock -d livrostock_restore_ci_12345678 -tAc 'SELECT count(*) FROM livros;' | Out-String).Trim()
           if ($LASTEXITCODE -ne 0 -or $resultado -ne '1') { throw "Livro nao restaurado: $resultado" }
           $pdfRestaurado = @(Get-ChildItem -LiteralPath $restores -Recurse -Filter 'ci.pdf' -File)
