@@ -12,7 +12,7 @@
 
 **LivroStock** é um sistema full stack de controle de acervo e estoque de livros, desenvolvido como projeto de portfólio. Integra uma **API REST em Java 21 e Spring Boot**, uma **SPA em React e TypeScript** e um banco **PostgreSQL**, com persistência via JPA/Hibernate e migrações versionadas com Flyway.
 
-> **Estado do projeto:** v0.1 validada em ambiente local, incluindo resposta da API, interface conectada e movimentação de estoque. Não é um sistema pronto para produção: autenticação, autorização, auditoria e gestão de segredos ainda precisam ser implementadas.
+> **Estado do projeto:** main mantém a base v0.1; as evoluções v0.2–v0.6 estão em branches e PRs de revisão. Segurança JWT, perfis e auditoria existem nas branches evolutivas; **ainda não há homologação de produção**, configuração segura de deploy nem gestão completa de segredos.
 
 ## ✨ Funcionalidades da v0.1
 
@@ -331,6 +331,7 @@ Os testes locais de integração realizados na v0.1 confirmaram acesso ao endpoi
 | **v0.3** | JWT para Biblioteca Digital e perfis Bibliotecário/Leitor | Implementado em branch, homologado localmente |
 | **v0.4** | Temas Light/Moderado/Dark, RBAC no catálogo e auditoria | PR #3 em revisão |
 | **v0.5** | Usuários PostgreSQL, JWT revogável, auditoria de escrita transacional | PR #4 em revisão |
+| **v0.6** | Backup PostgreSQL + PDFs, verificação SHA-256 e restore isolado | PR #5 em revisão |
 | **v1.0** | Hardening, CI validado, deploy e documentação operacional | Planejada |
 
 Consulte [roadmap](docs/ROADMAP.md), [regras de negócio](docs/REGRAS_DE_NEGOCIO.md), [arquitetura e DER](docs/ARQUITETURA.md) e [API REST](docs/API.md).
@@ -364,6 +365,16 @@ Também reforça a auditoria de cadastro/edição/desativação de livros, movim
 CI com Java 21, React e integração com PostgreSQL 16 isolado. **Não mesclar antes de backup e homologação local com o banco existente.**
 
 Leia o [guia da v0.5 e checklist de homologação](docs/V0_5_USUARIOS_PERSISTENTES.md).
+
+## 💾 LivroStock v0.6 — backup e restauração em ambiente isolado
+
+A branch feature/v0.6-backup-restore-seguro fornece scripts PowerShell para copiar **banco PostgreSQL + acervo PDF** para um ZIP com manifesto SHA-256, verificar integridade e recuperar o conteúdo **somente em um novo banco** e em uma pasta de PDFs separada.
+
+Os scripts não alteram o banco principal. Para garantir consistência entre SQL e PDFs, **pare apenas o Spring Boot antes de copiar**; mantenha o PostgreSQL em execução. Nenhum backup é enviado à nuvem, e os ZIPs não são criptografados pelo script — armazene-os em mídia protegida.
+
+A CI inclui execução no PowerShell 5.1 e 7 e um teste ponta a ponta com PostgreSQL e PDFs descartáveis. A homologação com seus dados reais ainda depende de backup, verificação e teste de restauração local.
+
+**Manual com comandos:** [Backup e restauração v0.6](docs/V0_6_BACKUP_RESTAURACAO.md).
 
 ## 📄 Licença
 

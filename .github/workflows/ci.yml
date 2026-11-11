@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [main, develop, feature/v0.2-categorias, 'feature/v0.3-pdf-security', 'feature/v0.4-rbac-auditoria-temas', 'feature/v0.5-usuarios-persistentes']
+    branches: [main, develop, feature/v0.2-categorias, 'feature/v0.3-pdf-security', 'feature/v0.4-rbac-auditoria-temas', 'feature/v0.5-usuarios-persistentes', 'feature/v0.6-backup-restore-seguro']
   pull_request:
 permissions:
   contents: read
@@ -75,3 +75,68 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Build frontend
         run: npm run build
+
+  backup:
+    name: PowerShell - backup ZIP e integridade
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Testar no Windows PowerShell 5.1
+        shell: powershell
+        run: .\ops\testar-verificador.ps1
+      - name: Testar no PowerShell 7
+        shell: pwsh
+        run: ./ops/testar-verificador.ps1
+
+  backup-restore-e2e:
+    name: Docker - backup e restauracao isolada
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Iniciar PostgreSQL descartavel
+        run: docker compose -f backend/docker-compose.yml up -d --wait postgres
+      - name: Preparar schema e livro de teste
+        shell: bash
+        run: |
+          for sql in backend/src/main/resources/db/migration/V*.sql; do
+            docker compose -f backend/docker-compose.yml exec -T postgres psql -U livrostock -d livrostock -v ON_ERROR_STOP=1 < "$sql"
+          done
+          docker compose -f backend/docker-compose.yml exec -T postgres psql -U livrostock -d livrostock -v ON_ERROR_STOP=1 -c "INSERT INTO livros(titulo,autor,isbn,categoria,preco,quantidade,estoque_minimo,ativo,criado_em) VALUES ('Livro CI','Autor CI','9780000000111','Testes',12.50,1,0,TRUE,now());"
+          mkdir -p backend/data/pdfs
+          printf '%s\n' '%PDF-1.4' 'exemplo de teste' > backend/data/pdfs/ci.pdf
+      - name: Backup e restore de verdade em novo banco
+        shell: pwsh
+        run: |
+          $compose = Join-Path $PWD 'backend/docker-compose.yml'
+          $pdfDir = Join-Path $PWD 'backend/data/pdfs'
+          $backups = Join-Path $env:RUNNER_TEMP 'livrostock-ci-backups'
+          $restores = Join-Path $env:RUNNER_TEMP 'livrostock-ci-restores'
+          $postgres = (& docker compose -f $compose ps -q postgres | Out-String).Trim()
+          if (-not $postgres) { throw 'Container de CI indisponivel' }
+
+          # Reproduz o erro real: o backup de um banco vazio deve ser recusado.
+          & docker exec $postgres createdb -U livrostock livrostock_vazio_ci
+          if ($LASTEXITCODE -ne 0) { throw 'Nao foi possivel criar banco vazio de teste' }
+          $recusado = $false
+          try {
+            ./ops/criar-backup.ps1 -Destino (Join-Path $env:RUNNER_TEMP 'recusado') -DiretorioPdf $pdfDir -ComposeFile $compose -ContainerPostgres $postgres -Banco livrostock_vazio_ci -ConfirmoAplicacaoParada
+          }
+          catch {
+            if ($_.Exception.Message -like '*BACKUP RECUSADO*') { $recusado = $true }
+            else { throw }
+          }
+          if (-not $recusado) { throw 'Backup de esquema vazio nao foi recusado' }
+          Write-Host 'OK: banco vazio rejeitado antes de criar ZIP'
+
+          ./ops/criar-backup.ps1 -Destino $backups -DiretorioPdf $pdfDir -ComposeFile $compose -ContainerPostgres $postgres -ConfirmoAplicacaoParada
+          $arquivos = @(Get-ChildItem -LiteralPath $backups -Filter '*.zip')
+          if ($arquivos.Count -ne 1) { throw 'Esperado exatamente um ZIP de backup' }
+          ./ops/restaurar-em-teste.ps1 -Arquivo $arquivos[0].FullName -Destino $restores -ComposeFile $compose -ContainerPostgres $postgres -BancoTeste 'livrostock_restore_ci_12345678' -ConfirmarCriacaoBancoTeste
+          $resultado = (& docker compose -f $compose exec -T postgres psql -U livrostock -d livrostock_restore_ci_12345678 -tAc 'SELECT count(*) FROM livros;' | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0 -or $resultado -ne '1') { throw "Livro nao restaurado: $resultado" }
+          $pdfRestaurado = @(Get-ChildItem -LiteralPath $restores -Recurse -Filter 'ci.pdf' -File)
+          if ($pdfRestaurado.Count -ne 1) { throw 'PDF nao restaurado no diretorio isolado' }
+          Write-Host 'END-TO-END OK: dump PostgreSQL e PDF restaurados com sucesso no ambiente descartavel'
+      - name: Logs Docker em caso de falha
+        if: failure()
+        run: docker compose -f backend/docker-compose.yml logs --tail=80 postgres
