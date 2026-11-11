@@ -25,9 +25,9 @@ Somente exemplares vinculados a **livros digitais ativos** são retornados. Livr
 
 ### Segurança
 
-No perfil `secure`, somente usuários com JWT válido e perfil `BIBLIOTECARIO` ou `LEITOR` acessam a lista; sem JWT retorna 401. Upload continua restrito a bibliotecário. `Cache-Control: no-store` impede que o endpoint solicite armazenamento da resposta em caches HTTP. PDFs permanecem privados e continuam sendo lidos pelo endpoint autenticado existente.
+O endpoint existe **somente** no perfil `secure` (`@Profile("secure")`). Usuários com JWT válido e perfil `BIBLIOTECARIO` ou `LEITOR` acessam a lista; sem JWT retorna 401. No perfil `default`, o React mantém a listagem legada por livro, exclusiva para desenvolvimento local. Upload continua restrito a bibliotecário. `Cache-Control: no-store` impede que o endpoint solicite armazenamento da resposta em caches HTTP. PDFs permanecem privados e continuam sendo lidos pelo endpoint autenticado existente.
 
-**Não publique a API no perfil padrão:** os módulos legados oferecem acesso local sem JWT. Para um deploy público, faltam revisão de segurança, rate limiting, HTTPS e política de licenças/uso de PDFs.
+**Não publique a API no perfil padrão:** os módulos legados oferecem acesso local sem JWT, mesmo que este endpoint novo não seja criado nele. Para um deploy público, faltam revisão de segurança, rate limiting, HTTPS e política de licenças/uso de PDFs.
 
 ## Exemplo no PowerShell
 
