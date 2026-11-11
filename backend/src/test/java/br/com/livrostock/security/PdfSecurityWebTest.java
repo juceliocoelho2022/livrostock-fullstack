@@ -221,8 +221,9 @@ class PdfSecurityWebTest {
         mvc.perform(delete("/api/v1/livros/1").header("Authorization","Bearer "+token))
             .andExpect(status().isNoContent());
         verify(estoque).desativar(1L);
-        verify(auditoria).registrar("bibliotecario","LIVRO_DESATIVAR","DELETE",
-                "/api/v1/livros/1",204);
+        // A auditoria de escrita agora é chamada dentro da transação do EstoqueService,
+        // não pelo interceptor MVC após a resposta.
+        verifyNoInteractions(auditoria);
     }
 
     @Test void auditoriaSomenteBibliotecario() throws Exception {
