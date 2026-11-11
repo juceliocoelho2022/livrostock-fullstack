@@ -81,7 +81,7 @@ try {
     $listaDump = (& docker exec $container pg_restore -l $nomeTemporario | Out-String)
     if ($LASTEXITCODE -ne 0) { throw 'Dump custom PostgreSQL invalido ou ilegivel' }
     foreach ($tabela in @('livros','movimentacoes','exemplares_digitais','auditoria_eventos','usuarios')) {
-        if ($listaDump -notmatch ("(?m)\\bTABLE\\s+public\\s+{0}\\s" -f [regex]::Escape($tabela))) {
+        if ($listaDump -notmatch ("(?m)\bTABLE\s+public\s+{0}\s" -f [regex]::Escape($tabela))) {
             throw "RESTAURACAO RECUSADA: dump nao possui a tabela $tabela. Backup obtido do container errado ou de schema incompleto. Nenhum banco novo criado."
         }
     }
