@@ -74,8 +74,27 @@ export default function BibliotecaDigital({livros,onLogout}:Props){
     }
     let ativo=true;
     setCarregandoAcervo(true);setErroAcervo('');
-    api.acervoDigital(acervoPagina,10,buscaAplicada,categoriaAcervo)
-      .then(p=>{
+    const consulta=seguro
+      ? api.acervoDigital(acervoPagina,10,buscaAplicada,categoriaAcervo)
+      : Promise.all(livros.filter(l=>l.somenteDigital).map(async livro=>({
+          livro,arquivos:await api.exemplares(livro.id)
+        }))).then(grupos=>{
+          // Compatibilidade: perfil default local mantém a consulta legada sem JWT.
+          const termo=buscaAplicada.toLocaleLowerCase('pt-BR');
+          const categoria=categoriaAcervo.toLocaleLowerCase('pt-BR');
+          const todos:AcervoDigitalItem[]=grupos.flatMap(({livro,arquivos})=>
+            arquivos.map(ex=>({
+              livroId:livro.id,titulo:livro.titulo,autor:livro.autor,categoria:livro.categoria,
+              exemplarId:ex.id,nomeOriginal:ex.nomeOriginal,tipoMime:ex.tipoMime,
+              tamanhoBytes:ex.tamanhoBytes,sha256:ex.sha256,criadoEm:ex.criadoEm
+            }))).filter(item=>
+              (!termo||`${item.titulo} ${item.autor}`.toLocaleLowerCase('pt-BR').includes(termo))
+              &&(!categoria||item.categoria.toLocaleLowerCase('pt-BR')===categoria))
+            .sort((a,b)=>b.criadoEm.localeCompare(a.criadoEm));
+          return {content:todos.slice(acervoPagina*10,(acervoPagina+1)*10),
+            totalElements:todos.length,totalPages:Math.ceil(todos.length/10)};
+        });
+    consulta.then(p=>{
         if(!ativo)return;
         setAcervoDigital(p.content);
         setAcervoTotal(p.totalElements);
@@ -83,7 +102,7 @@ export default function BibliotecaDigital({livros,onLogout}:Props){
       }).catch(e=>{if(ativo){setAcervoDigital([]);setErroAcervo((e as Error).message);}})
       .finally(()=>{if(ativo)setCarregandoAcervo(false);});
     return ()=>{ativo=false;};
-  },[modoVerificado,falhaModo,seguro,autenticado,revisaoAcervo,acervoPagina,buscaAplicada,categoriaAcervo]);
+  },[livros,modoVerificado,falhaModo,seguro,autenticado,revisaoAcervo,acervoPagina,buscaAplicada,categoriaAcervo]);
 
   // Blob URLs are local to the browser and allow inline PDF reading without placing JWTs in URLs.
   useEffect(()=>()=>{if(readerUrl)URL.revokeObjectURL(readerUrl);},[readerUrl]);
