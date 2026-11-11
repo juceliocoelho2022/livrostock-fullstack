@@ -29,6 +29,7 @@ function App(){
  const [loginSenha,setLoginSenha]=useState('');
  const [loginBusy,setLoginBusy]=useState(false);
  const [loginErro,setLoginErro]=useState('');
+ const [expiraEm,setExpiraEm]=useState<number|null>(null);
  useEffect(()=>{
    let ativo=true;setModoSeguro(null);setErroModo('');
    api.pdfSecurityMode().then(modo=>{if(ativo)setModoSeguro(modo);})
@@ -40,14 +41,26 @@ function App(){
    try{
      const resposta=await api.pdfLogin({usuario:loginUsuario,senha:loginSenha});
      setPerfis(resposta.roles);setUsuarioAtual(loginUsuario);setLoginSenha('');setAutenticado(true);
+     setExpiraEm(Date.now()+resposta.expiresIn*1000);
    }catch(e){setLoginErro((e as Error).message);}
    finally{setLoginBusy(false);}
  };
  const sair=()=>{
-   api.pdfSair();setAutenticado(false);setPerfis([]);setUsuarioAtual('');
+   api.pdfSair();setAutenticado(false);setPerfis([]);setUsuarioAtual('');setExpiraEm(null);
    setLivros([]);setTotal(0);setModal(null);setError('');setMenuOpen(false);
  };
  const podeAdministrar=modoSeguro!==true||perfis.includes('BIBLIOTECARIO');
+ useEffect(()=>{
+   if(modoSeguro!==true||expiraEm===null)return;
+   const timer=window.setTimeout(()=>sair(),Math.max(0,expiraEm-Date.now()));
+   return ()=>window.clearTimeout(timer);
+ },[modoSeguro,expiraEm]);
+ useEffect(()=>{
+   const expirou=()=>sair();
+   window.addEventListener('livrostock:auth-expired',expirou);
+   return ()=>window.removeEventListener('livrostock:auth-expired',expirou);
+ },[]);
+
 
  const [tema,setTema]=useState<Tema>(()=>{
    try {const salvo=window.localStorage.getItem('livrostock.tema');return temas.includes(salvo as Tema)?salvo as Tema:'light';}
