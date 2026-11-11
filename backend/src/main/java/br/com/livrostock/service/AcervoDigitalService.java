@@ -2,6 +2,7 @@ package br.com.livrostock.service;
 
 import br.com.livrostock.api.AcervoDigitalItemResponse;
 import br.com.livrostock.api.IntegridadePdfResponse;
+import io.micrometer.core.instrument.MeterRegistry;
 import br.com.livrostock.repository.ExemplarDigitalRepository;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -11,10 +12,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class AcervoDigitalService {
     private final ExemplarDigitalRepository exemplares;
     private final BibliotecaDigitalService biblioteca;
+    private final MeterRegistry metrics;
 
-    public AcervoDigitalService(ExemplarDigitalRepository exemplares, BibliotecaDigitalService biblioteca) {
+    public AcervoDigitalService(ExemplarDigitalRepository exemplares, BibliotecaDigitalService biblioteca,
+                               MeterRegistry metrics) {
         this.exemplares = exemplares;
         this.biblioteca = biblioteca;
+        this.metrics = metrics;
     }
 
     @Transactional(readOnly = true)
@@ -31,7 +35,11 @@ public class AcervoDigitalService {
     @Transactional(readOnly = true)
     public Page<IntegridadePdfResponse> verificarIntegridade(int pagina, int tamanho) {
         return exemplares.buscarAcervoDigital(null, null, pagina(pagina, tamanho, 20))
-                .map(ex -> IntegridadePdfResponse.from(ex, biblioteca.verificarIntegridade(ex)));
+                .map(ex -> {
+                    var estado = biblioteca.verificarIntegridade(ex);
+                    metrics.counter("livrostock.pdf.integridade.verificacoes", "estado", estado.name()).increment();
+                    return IntegridadePdfResponse.from(ex, estado);
+                });
     }
 
     private Pageable pagina(int numero, int tamanho, int limite) {
