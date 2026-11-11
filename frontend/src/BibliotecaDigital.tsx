@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { BookOpen, Download, ExternalLink, FilePlus2, FileText, RefreshCw, UploadCloud } from 'lucide-react';
 import { api, type AcervoDigitalItem, type ExemplarDigital, type Livro } from './api';
+import IntegridadePanel from './IntegridadePanel';
 
 type Props = { livros: Livro[]; onLogout?:()=>void };
 const tamanho = (bytes:number) => new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1}).format(bytes/1024)+' KB';
@@ -260,6 +261,7 @@ export default function BibliotecaDigital({livros,onLogout}:Props){
           </div>
         </div>
       </div>
+      {seguro&&perfis.includes('BIBLIOTECARIO')&&<IntegridadePanel/>}
       <div className="panel digital-box">
         <label className="digital-label" htmlFor="digital-livro">Livro associado</label>
         <select id="digital-livro" className="digital-select" value={livroId??''} disabled={livros.length===0}

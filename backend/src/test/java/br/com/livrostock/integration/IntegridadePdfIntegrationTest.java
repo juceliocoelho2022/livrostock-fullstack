@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -28,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@AutoConfigureObservability
 @ActiveProfiles("secure")
 @EnabledIfEnvironmentVariable(named = "LIVROSTOCK_INTEGRATION_DB", matches = "true")
 @TestPropertySource(properties = {
@@ -104,6 +106,23 @@ class IntegridadePdfIntegrationTest {
         } finally {
             Files.write(arquivo, original);
         }
+
+        // No modo secure, Prometheus e métricas do Actuator são administrativos.
+        mvc.perform(get("/actuator/prometheus")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/actuator/prometheus")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + leitor))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/actuator/prometheus")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "livrostock_pdf_integridade_verificacoes_total")));
+        mvc.perform(get("/actuator/metrics")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + leitor))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/actuator/metrics")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin))
+                .andExpect(status().isOk());
 
         mvc.perform(get("/api/v1/acervo-digital/integridade"))
                 .andExpect(status().isUnauthorized());

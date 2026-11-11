@@ -24,7 +24,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: never
+  metrics:
+    tags:
+      application: livrostock-api
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
