@@ -9,6 +9,10 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -27,11 +31,14 @@ public class BibliotecaDigitalService {
     private final LivroRepository livros;
     private final ExemplarDigitalRepository exemplares;
     private final Path diretorio;
+    private final AuditoriaService auditoria;
 
     public BibliotecaDigitalService(LivroRepository livros, ExemplarDigitalRepository exemplares,
+                                    AuditoriaService auditoria,
                                     @Value("${livrostock.storage.pdf-dir:./data/pdfs}") String pdfDir) {
         this.livros = livros;
         this.exemplares = exemplares;
+        this.auditoria = auditoria;
         this.diretorio = Path.of(pdfDir).toAbsolutePath().normalize();
     }
 
@@ -83,6 +90,24 @@ public class BibliotecaDigitalService {
                     livro, nomeOriginal, destino.getFileName().toString(),
                     Files.size(destino), HexFormat.of().formatHex(digest.digest()));
             ExemplarDigital salvo = exemplares.saveAndFlush(exemplar);
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+                // Mesmo commit do registro do PDF: falha de auditoria cancela a transação.
+                auditoria.registrar(auth.getName(), "PDF_UPLOAD", "POST",
+                        "/api/v1/livros/" + livroId + "/exemplares-digitais", 201);
+            }
+            // O sistema de arquivos não é transacional; remover o PDF se o commit SQL falhar.
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        if (status != STATUS_COMMITTED) {
+                            try { Files.deleteIfExists(destino); }
+                            catch (IOException ignored) { /* monitorar falhas de limpeza */ }
+                        }
+                    }
+                });
+            }
             concluido = true;
             return salvo;
         } catch (IOException | NoSuchAlgorithmException ex) {
