@@ -13,3 +13,50 @@
 .digital-login label{display:grid;gap:7px;font-size:12px;font-weight:700;color:#465e6b}
 .digital-login input{padding:12px;border:1px solid #dce6e8;border-radius:9px;font-size:13px;background:#fff;color:#243d4b}
 .digital-login button{justify-self:start}
+
+
+/* LivroStock v0.4: Light (padrão), Moderado (baixo contraste luminoso) e Dark */
+.theme-control{display:flex;gap:7px;align-items:center;font-size:11px;font-weight:700;color:#687f89}
+.theme-control select{max-width:155px;min-width:112px;border:1px solid #dce6e8;border-radius:8px;background:#fff;color:#284654;padding:8px 9px;font:600 11px 'DM Sans',sans-serif;cursor:pointer}
+.theme-control select:focus-visible{outline:3px solid #48a99180;outline-offset:2px}
+@media(max-width:740px){.theme-control label{display:none}.theme-control select{min-width:96px;width:104px;padding:7px 5px;font-size:10px}.topbar-actions{gap:7px}}
+
+:root[data-theme='moderado']{color-scheme:light;background:#e8edef;color:#2b414b}
+:root[data-theme='moderado'] body,:root[data-theme='moderado'] .app-shell,:root[data-theme='moderado'] .main-wrap{background:#e8edef;color:#2b414b}
+:root[data-theme='moderado'] .sidebar{background:#2a404c}
+:root[data-theme='moderado'] .topbar,:root[data-theme='moderado'] .panel,:root[data-theme='moderado'] .metric-card,:root[data-theme='moderado'] .modal,:root[data-theme='moderado'] .digital-reader{background:#f4f6f5;border-color:#d9e3e3}
+:root[data-theme='moderado'] .welcome-panel{background:#36515d}
+:root[data-theme='moderado'] .theme-control select,:root[data-theme='moderado'] .digital-select,:root[data-theme='moderado'] .digital-login input,:root[data-theme='moderado'] .form-body input,:root[data-theme='moderado'] .form-body textarea,:root[data-theme='moderado'] .secondary-btn{background:#fcfdfb;color:#34515d;border-color:#cad9da}
+:root[data-theme='moderado'] thead,:root[data-theme='moderado'] .selected-book,:root[data-theme='moderado'] .category-pill,:root[data-theme='moderado'] .form-note{background:#e9f0ee}
+:root[data-theme='moderado'] .digital-notice{background:#f0ebe0;border-color:#d9cfb8;color:#665b45}
+
+:root[data-theme='dark']{color-scheme:dark;background:#121c28;color:#e4eff3}
+:root[data-theme='dark'] body,:root[data-theme='dark'] .app-shell,:root[data-theme='dark'] .main-wrap{background:#121c28;color:#e4eff3}
+:root[data-theme='dark'] .sidebar{background:#0b1723;color:#c1d8df}
+:root[data-theme='dark'] .nav-link.active{background:#244857}
+:root[data-theme='dark'] .topbar,:root[data-theme='dark'] .panel,:root[data-theme='dark'] .metric-card,:root[data-theme='dark'] .modal,:root[data-theme='dark'] .digital-reader{background:#1c2b39;border-color:#334858;color:#e4eff3;box-shadow:0 3px 15px #050b1545}
+:root[data-theme='dark'] .welcome-panel{background:#274b51;color:#f0f9f7}
+:root[data-theme='dark'] .welcome-copy p{color:#d0e2e5}
+:root[data-theme='dark'] .heading-row h1,:root[data-theme='dark'] .topbar-left strong,:root[data-theme='dark'] .metric-value,:root[data-theme='dark'] .panel-title h3,:root[data-theme='dark'] .table-top h3,:root[data-theme='dark'] .digital-heading h3,:root[data-theme='dark'] .digital-list-header h3,:root[data-theme='dark'] .book-cell strong,:root[data-theme='dark'] .digital-file-details strong,:root[data-theme='dark'] .modal-header h2,:root[data-theme='dark'] .blank h3,:root[data-theme='dark'] .price-cell,:root[data-theme='dark'] .stock-num,:root[data-theme='dark'] .selected-book strong{color:#eaf5f7}
+:root[data-theme='dark'] .subtitle,:root[data-theme='dark'] .metric-label,:root[data-theme='dark'] .metric-sub,:root[data-theme='dark'] .book-cell small,:root[data-theme='dark'] .digital-file-details small,:root[data-theme='dark'] .digital-heading p,:root[data-theme='dark'] .digital-book-meta,:root[data-theme='dark'] .form-help,:root[data-theme='dark'] .app-footer,:root[data-theme='dark'] .digital-empty{color:#a8c0ca}
+:root[data-theme='dark'] td,:root[data-theme='dark'] th,:root[data-theme='dark'] .digital-file,:root[data-theme='dark'] .modal-header,:root[data-theme='dark'] .digital-reader-top{border-color:#334858;color:#c6dce5}
+:root[data-theme='dark'] thead,:root[data-theme='dark'] .selected-book,:root[data-theme='dark'] .form-note,:root[data-theme='dark'] .category-pill,:root[data-theme='dark'] .pagination button{background:#253948;color:#c4dce5;border-color:#3d5766}
+:root[data-theme='dark'] .theme-control{color:#bcd1db}
+:root[data-theme='dark'] .theme-control select,:root[data-theme='dark'] .search-field,:root[data-theme='dark'] .digital-select,:root[data-theme='dark'] .digital-login input,:root[data-theme='dark'] .form-body input,:root[data-theme='dark'] .form-body textarea,:root[data-theme='dark'] .secondary-btn{background:#263b4a;color:#e5f1f3;border-color:#436073}
+:root[data-theme='dark'] .search-field input{color:#e5f1f3}
+:root[data-theme='dark'] .search-field input::placeholder{color:#9db0bc}
+:root[data-theme='dark'] .digital-notice{background:#3d362b;color:#ecd4aa;border-color:#6b5b45}
+:root[data-theme='dark'] .digital-session{color:#9fdfc9}
+:root[data-theme='dark'] .digital-file-icon{background:#503835;color:#e2a59e}
+:root[data-theme='dark'] .form-body label,:root[data-theme='dark'] .digital-label,:root[data-theme='dark'] .digital-login label{color:#d0e1e9}
+:root[data-theme='dark'] .digital-frame{background:#152531}
+:root[data-theme='dark'] .api-status.online{background:#1a403b;border-color:#366459;color:#aeebc4}
+:root[data-theme='dark'] .api-status.offline{background:#4b302d;border-color:#6b4545;color:#ffc6b9}
+:root[data-theme='dark'] .movement-instruction{background:#203e3c;border-color:#356354}
+:root[data-theme='dark'] .movement-instruction strong{color:#b8efd8}
+:root[data-theme='dark'] .movement-instruction p{color:#a8c8bc}
+:root[data-theme='dark'] .all-good b,:root[data-theme='dark'] .attention-item strong{color:#dbf1ef}
+:root[data-theme='dark'] .digital-success{background:#20483b;color:#b5eed0}
+:root[data-theme='dark'] .digital-error,:root[data-theme='dark'] .modal-error{background:#4d3034;color:#ffc3be}
+:root[data-theme='dark'] .blank{color:#bdced5}
+:root[data-theme='dark'] .balance-preview strong{color:#b6eacf}
